@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jre1.8.0_112">
+		<attributes>
+			<attribute name="owner.project.facets" value="java"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jst.server.core.container/org.eclipse.jst.server.tomcat.runtimeTarget/Apache Tomcat v7.0">
+		<attributes>
+			<attribute name="owner.project.facets" value="jst.web"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.web.container"/>
+	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
+	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/ldap.jar"/>
+	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/zxing-2.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/ormlite-core-4.46.jar"/>
+	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/ormlite-jdbc-4.46.jar"/>
+	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/smack.jar"/>
+	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/smackx.jar"/>
+	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/httpclient-4.3.jar"/>
+	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/httpcore-4.3.jar"/>
+	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/json-simple-1.1.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/jackson-all-1.9.0.jar"/>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/gson-2.3.1.jar"/>
+	<classpathentry kind="output" path="build/classes"/>
+</classpath>
