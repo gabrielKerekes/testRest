@@ -36,6 +36,7 @@ public class SimpleRestService {
 	private static Map messages_reg = new HashMap<String, String>();
 	private static Map blocked_messages = new HashMap<String, String>();
 	private static Map req_message = new HashMap<String, String>();
+	private static Map pendingTransactionsFromBank = new HashMap<String, String>();
 	
 	@GET
 	@Path("/getTest")
@@ -43,6 +44,52 @@ public class SimpleRestService {
 	public String getTest(){
 		
 		return "Tadadaaa2!!";
+	}
+	
+	@GET
+	@Path("/getTransactionConfirmation")
+	@Produces(MediaType.TEXT_PLAIN)
+	public String getTransactionConfirmation(@QueryParam("username") String username)
+	{		
+		String response = "";
+		String pendingTransaction = null;
+		
+		try
+		{
+			// todo: GABO - fix params
+			//new App("Transaction confirmation", cont+"="+counter, user);
+			new App("Transaction confirmation", "test" + "=" + 0, username);
+			
+			long startTime = System.currentTimeMillis();
+			long currentTime = 0;
+			
+			do
+			{				
+				if ((currentTime - startTime) >= 300000)
+				{
+					response = "error";
+					pendingTransactionsFromBank.remove(username);
+					break;
+				}
+				
+				pendingTransaction = (String) pendingTransactionsFromBank.get(username);
+				
+				if (pendingTransaction != null)
+				{				
+					pendingTransactionsFromBank.remove(username);
+				}
+				
+			} while (pendingTransaction == null);
+			
+			response = "success";
+		}
+		catch(Exception e)
+		{
+			response = "error";
+			pendingTransactionsFromBank.remove(username);
+		}
+		
+        return response;
 	}
 	
 	@POST
@@ -154,6 +201,7 @@ public class SimpleRestService {
 				if(msg.checkOcra(imei)){
 					resp = Response.status(201).build(); 
 					messages.put(msg.getUname()+msg.getCounter(), msg);
+					pendingTransactionsFromBank.put(msg.getUname(), "");
 				}else{
 					if(msg.getAnswer().equals("err")) resp = Response.status(417).build(); 
 					else resp = Response.status(500).build(); 
