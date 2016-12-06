@@ -60,6 +60,22 @@ public class LDAP {
     private String jsp_otp;
 	boolean is_correct;
 	private Utils utils = new Utils();
+	private String ldapIp;
+
+	private String readLdapIpFromConfigFile() {
+		try {
+			BufferedReader br = new BufferedReader(
+					new InputStreamReader(this.getClass().getResourceAsStream("/config/ldapIp.conf")));
+			ldapIp = br.readLine();
+			br.close();
+		} catch (Exception e) {
+			ldapIp = "147.175.98.17";
+			e.printStackTrace();
+			System.out.println("IP config file not found");
+		}
+
+		return ldapIp;
+	}
 
 	//konstruktor pre prihlasenie
 	LDAP(String username, String passwrd, String grid, String number, String otp){
@@ -69,7 +85,7 @@ public class LDAP {
         ldapVersion  = LDAPConnection.LDAP_V3;
         attributeOnly = false;        
         
-        ldapHost = "147.175.98.17";//"192.168.0.3";
+        ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "uid="+username+",ou=Users,dc=test,dc=sk";
         password = Integer.toString(passwrd.hashCode());
         searchBase = "ou=Users,dc=test,dc=sk";
@@ -116,7 +132,7 @@ public class LDAP {
         ldapVersion  = LDAPConnection.LDAP_V3;
         attributeOnly = false;
         
-        ldapHost = "147.175.98.17";//"192.168.0.3";
+        ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
         password = "projekt";
         searchBase = "ou=Users,dc=test,dc=sk";
@@ -147,7 +163,7 @@ public class LDAP {
         this.imei = imei;
         this.pin = pin;        
         
-        ldapHost = "147.175.98.17";//"192.168.0.3";
+        ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
         password = "projekt";
         searchBase = "ou=Users,dc=test,dc=sk";
@@ -169,7 +185,7 @@ public class LDAP {
         ldapVersion  = LDAPConnection.LDAP_V3;
         attributeOnly = false;        
         
-        ldapHost = "147.175.98.17";//"192.168.0.3";
+        ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "uid="+username+",ou=Users,dc=test,dc=sk";
         password = new_pass = Integer.toString(passwrd.hashCode());
         searchBase = "ou=Users,dc=test,dc=sk";
@@ -204,7 +220,7 @@ public class LDAP {
         ldapVersion  = LDAPConnection.LDAP_V3;
         attributeOnly = false;        
         
-        ldapHost = "147.175.98.17";//"192.168.0.3";
+        ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "uid="+username+",ou=Users,dc=test,dc=sk";
         password = Integer.toString(passwrd.hashCode());
         searchBase = "ou=Users,dc=test,dc=sk";
@@ -236,10 +252,9 @@ public class LDAP {
         new_mail = mail;
         new_grid_card = grid_card;
         new_counter = 0;
-        this.pin = pin;
+        this.pin = pin;        
         
-        
-        ldapHost = "147.175.98.17";//"192.168.0.3";
+        ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
         password = "projekt";
         searchBase = "ou=Users,dc=test,dc=sk";

@@ -42,7 +42,7 @@ public class SimpleRestService {
 	@Produces(MediaType.TEXT_PLAIN)
 	public String getTest(){
 		
-		return "Tadadaaa!!";
+		return "Tadadaaa2!!";
 	}
 	
 	@POST
