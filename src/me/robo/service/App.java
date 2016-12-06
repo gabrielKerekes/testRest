@@ -5,7 +5,7 @@ public class App
 {
     public App(String title, String cont, String username)
     {
-        String apiKey = "AIzaSyAZBdN__jxzicFfzSmqtgL-fKVDoAqiaCg";//"AIzaSyAJG2hGrTAdAfguxDkDZbEKLbBATdQZRZg";
+    	String apiKey = "AIzaSyA9Me7U6x9mhne7t7aUmmVLCzdcujmtx-M";//"AIzaSyAZBdN__jxzicFfzSmqtgL-fKVDoAqiaCg";//"AIzaSyAJG2hGrTAdAfguxDkDZbEKLbBATdQZRZg";
         Content content = createContent(title, cont, username);
 
         POST2GCM.post(apiKey, content);
