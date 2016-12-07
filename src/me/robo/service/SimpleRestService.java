@@ -49,7 +49,7 @@ public class SimpleRestService {
 	@GET
 	@Path("/getTransactionConfirmation")
 	@Produces(MediaType.TEXT_PLAIN)
-	public String getTransactionConfirmation(@QueryParam("username") String username)
+	public String getTransactionConfirmation(@QueryParam("username") String username, @QueryParam("amount") String amount)
 	{		
 		String response = "";
 		String pendingTransaction = null;
@@ -58,13 +58,14 @@ public class SimpleRestService {
 		{
 			// todo: GABO - fix params
 			//new App("Transaction confirmation", cont+"="+counter, user);
-			new App("Transaction confirmation", "test" + "=" + 0, username);
+			new App("Transaction confirmation", "test" + "=" + 0 + "=" + amount, username);
 			
 			long startTime = System.currentTimeMillis();
 			long currentTime = 0;
 			
 			do
 			{				
+				// 300000 milis = 5 minutes  
 				if ((currentTime - startTime) >= 300000)
 				{
 					response = "error";
