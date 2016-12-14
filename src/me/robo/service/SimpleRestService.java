@@ -63,12 +63,14 @@ public class SimpleRestService {
 			long startTime = System.currentTimeMillis();
 			long currentTime = 0;
 			
+			response = "{'success': 1, 'message': 'success'}";
+			
 			do
 			{				
 				// 300000 milis = 5 minutes  
 				if ((currentTime - startTime) >= 300000)
 				{
-					response = "error";
+					response = "{'success': 0, 'message': 'error - timeout'}";
 					pendingTransactionsFromBank.remove(username);
 					break;
 				}
@@ -81,12 +83,10 @@ public class SimpleRestService {
 				}
 				
 			} while (pendingTransaction == null);
-			
-			response = "success";
 		}
 		catch(Exception e)
 		{
-			response = "error";
+			response = "{'success': 0, 'message': 'error -exception'}";
 			pendingTransactionsFromBank.remove(username);
 		}
 		
