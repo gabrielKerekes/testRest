@@ -9,6 +9,7 @@ public class Message {
 	private String answer;
 	private String ocra;
 	private String counter;	
+	private int amount;
 	
 	public String getCounter() {
 		return counter;
@@ -28,6 +29,9 @@ public class Message {
 	public String getOcra() {
 		return ocra;
 	}
+	public int getAmount() {
+		return amount;
+	}
 	public void setUname(String uname) {
 		this.uname = uname;
 	}
@@ -39,6 +43,9 @@ public class Message {
 	}
 	public void setOcra(String ocra) {
 		this.ocra = ocra;
+	}
+	public void setAmount(int amount) {
+		this.amount = amount;
 	}
 	
 	public boolean checkOcra(String imei){
