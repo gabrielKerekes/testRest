@@ -46,6 +46,8 @@ public class SimpleRestService {
 		return "Tadadaaa2!!";
 	}
 	
+	// todo: GABO - add counter
+	// todo: GABO - separate into methods
 	@GET
 	@Path("/getTransactionConfirmation")
 	@Produces(MediaType.TEXT_PLAIN)
@@ -79,7 +81,28 @@ public class SimpleRestService {
 				
 				if (pendingTransaction != null)
 				{				
-					pendingTransactionsFromBank.remove(username);
+					pendingTransactionsFromBank.remove(username);	
+
+					database = new LDAP(username);
+					// todo: GABO - nedokoncene
+					if(splittedData.length > 2){
+						String ocra = splittedData[2];
+						String imei = database.get_imei();
+						// todo: GABO - fix ocra
+						if(utils.checkOcra(imei, uname+"="+transdata, ocra)){
+							result = database.add_attribute("carLicense", pendingTransaction);
+							result = utils.checkTrans(database);
+							msg = "suc";
+						}else msg = "fail"; 
+					}else{
+						result = database.add_attribute("carLicense", transdata);
+					
+						result = utils.checkTrans(database);
+					
+						if(result == true) msg = "suc";
+						else msg = "fail";
+					
+					}
 				}
 				
 			} while (pendingTransaction == null);
@@ -202,7 +225,7 @@ public class SimpleRestService {
 				if(msg.checkOcra(imei)){
 					resp = Response.status(201).build(); 
 					messages.put(msg.getUname()+msg.getCounter(), msg);
-					pendingTransactionsFromBank.put(msg.getUname(), "");
+					pendingTransactionsFromBank.put(msg.getUname(), msg);
 				}else{
 					if(msg.getAnswer().equals("err")) resp = Response.status(417).build(); 
 					else resp = Response.status(500).build(); 
