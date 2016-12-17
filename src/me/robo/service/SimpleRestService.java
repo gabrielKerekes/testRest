@@ -54,7 +54,7 @@ public class SimpleRestService {
 	public String getTransactionConfirmation(@QueryParam("username") String username, @QueryParam("amount") String amount)
 	{		
 		String response = "";
-		String pendingTransaction = null;
+		Message pendingTransaction = null;
 		
 		try
 		{
@@ -76,40 +76,32 @@ public class SimpleRestService {
 					pendingTransactionsFromBank.remove(username);
 					break;
 				}
-				
-				pendingTransaction = (String) pendingTransactionsFromBank.get(username);
-				
+				// todo: GABO -  refactor
+				pendingTransaction = (Message) pendingTransactionsFromBank.get(username);
+				String[] splittedData;
+				boolean result;
 				if (pendingTransaction != null)
 				{				
 					pendingTransactionsFromBank.remove(username);	
+					
+					String uname = pendingTransaction.getUname();
+					LDAP database = new LDAP(username);
+					Utils utils = new Utils();
+					String msg;
 
-					database = new LDAP(username);
-					// todo: GABO - nedokoncene
-					if(splittedData.length > 2){
-						String ocra = splittedData[2];
-						String imei = database.get_imei();
-						// todo: GABO - fix ocra
-						if(utils.checkOcra(imei, uname+"="+transdata, ocra)){
-							result = database.add_attribute("carLicense", pendingTransaction);
-							result = utils.checkTrans(database);
-							msg = "suc";
-						}else msg = "fail"; 
-					}else{
-						result = database.add_attribute("carLicense", transdata);
-					
-						result = utils.checkTrans(database);
-					
-						if(result == true) msg = "suc";
-						else msg = "fail";
-					
-					}
+					String imei = database.get_imei();
+
+					result = database.add_attribute("carLicense", pendingTransaction.getUname() + " - " + pendingTransaction.getAmount());
+					result = utils.checkTrans(database);
+					msg = "suc";
+
 				}
 				
 			} while (pendingTransaction == null);
 		}
 		catch(Exception e)
 		{
-			response = "{'success': 0, 'message': 'error -exception'}";
+			response = "{'success': 0, 'message': 'error - exception'}";
 			pendingTransactionsFromBank.remove(username);
 		}
 		
