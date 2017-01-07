@@ -79,7 +79,8 @@ public class LDAP {
 
 	//konstruktor pre prihlasenie
 	LDAP(String username, String passwrd, String grid, String number, String otp){
-
+		this.username = username;
+		
 		ldapPort = LDAPConnection.DEFAULT_PORT;
         searchScope = LDAPConnection.SCOPE_ONE;
         ldapVersion  = LDAPConnection.LDAP_V3;
@@ -134,7 +135,7 @@ public class LDAP {
         
         ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
-        password = "projekt";
+        password = "gbld33";
         searchBase = "ou=Users,dc=test,dc=sk";
         searchFilter = "uid="+username;
         
@@ -165,7 +166,7 @@ public class LDAP {
         
         ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
-        password = "projekt";
+        password = "gbld33";
         searchBase = "ou=Users,dc=test,dc=sk";
         searchFilter = "uid="+username;
         
@@ -256,7 +257,7 @@ public class LDAP {
         
         ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
-        password = "projekt";
+        password = "gbld33";
         searchBase = "ou=Users,dc=test,dc=sk";
         searchFilter = "uid="+username;
         
@@ -279,7 +280,7 @@ public class LDAP {
         }
         catch(LDAPException e){
         	disconnect();
-        	System.out.println("Could not connect to the database");
+			System.out.println("Could not connect to the database");
         	
         	return false;
         }
@@ -481,7 +482,7 @@ public class LDAP {
 	
 	//pridanie atributu k uzivatelovi - transakcia
 	public boolean add_attribute(String field, String value){
-		
+		System.out.println(value);
 		String myEntryDN = searchFilter+ "," + searchBase;
 		LDAPAttribute newAttr = new LDAPAttribute(field, value); 
 		LDAPModification singleChange = new LDAPModification( LDAPModification.ADD, newAttr );
@@ -702,7 +703,8 @@ public class LDAP {
 			resync++;
 		    String item = otp_it.next();
 		    if( item.equals(jsp_otp) ){
-		    	modify_attribute("employeenumber", Integer.toString(otp_counter_i+resync),null);
+		    	LDAP adminDatabase = new LDAP(this.username);
+		    	adminDatabase.modify_attribute("employeenumber", Integer.toString(otp_counter_i+resync),null);
 		    	return true;
 		    }
 		}

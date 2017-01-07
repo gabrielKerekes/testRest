@@ -1,10 +1,14 @@
 package me.robo.service;
 
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,6 +41,8 @@ public class SimpleRestService {
 	private static Map blocked_messages = new HashMap<String, String>();
 	private static Map req_message = new HashMap<String, String>();
 	private static Map pendingTransactionsFromBank = new HashMap<String, String>();
+	// todo: GABO - implement blocked
+	private static Map blockedPendingTransactionsFromBank = new HashMap<String, String>();
 	
 	@GET
 	@Path("/getTest")
@@ -46,26 +52,51 @@ public class SimpleRestService {
 		return "Tadadaaa2!!";
 	}
 	
-	// todo: GABO - add counter
-	// todo: GABO - separate into methods
+	@GET
+	@Path("/getLdapTest")
+	@Produces(MediaType.TEXT_PLAIN)
+	public String getLdapTest()
+	{
+		try
+		{
+			LDAP database = new LDAP("nestel144", "Gbld33");
+			if (!database.is_Correct())
+			{
+				return "incorrect user";
+			}
+			database = new LDAP("nestel144");
+			if (database.modify_attribute("employeeType", "866156020310424", "gbld33"))
+			{
+				if (database.add_attribute("carLicense", "123!#2017:01:07_10:46:23#192.168.0.104#1"));
+					return "success";
+			}
+			return "error";
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			return "exception";
+		}
+	}
+	
+	// todo: GABO - refactor
 	@GET
 	@Path("/getTransactionConfirmation")
 	@Produces(MediaType.TEXT_PLAIN)
-	public String getTransactionConfirmation(@QueryParam("username") String username, @QueryParam("amount") String amount)
+	public String getTransactionConfirmation(@QueryParam("username") String username, @QueryParam("amount") String amount, @QueryParam("counter") int counter)
 	{		
 		String response = "";
 		Message pendingTransaction = null;
 		
 		try
 		{
-			// todo: GABO - fix params
-			//new App("Transaction confirmation", cont+"="+counter, user);
-			new App("Transaction confirmation", "test" + "=" + 0 + "=" + amount, username);
+			// todo: GABO - message content by nieco asi malo byt
+			new App("Transaction confirmation", "test" + "=" + counter + "=" + amount, username);
 			
 			long startTime = System.currentTimeMillis();
 			long currentTime = 0;
 			
-			response = "{'success': 1, 'message': 'success'}";
+			response = "{'success': 1, 'message': 'confirmed'}";
 			
 			do
 			{				
@@ -77,30 +108,37 @@ public class SimpleRestService {
 					break;
 				}
 				// todo: GABO -  refactor
-				pendingTransaction = (Message) pendingTransactionsFromBank.get(username);
-				String[] splittedData;
-				boolean result;
+				pendingTransaction = (Message) pendingTransactionsFromBank.get(username + counter);
 				if (pendingTransaction != null)
 				{				
-					pendingTransactionsFromBank.remove(username);	
+					pendingTransactionsFromBank.remove(username + counter);	
 					
-					String uname = pendingTransaction.getUname();
 					LDAP database = new LDAP(username);
 					Utils utils = new Utils();
-					String msg;
+					
+					boolean isTransactionAccepted = pendingTransaction.getAnswer().equals("ano");
 
-					String imei = database.get_imei();
-
-					result = database.add_attribute("carLicense", pendingTransaction.getUname() + " - " + pendingTransaction.getAmount());
-					result = utils.checkTrans(database);
-					msg = "suc";
-
+					DateFormat dateformat = new SimpleDateFormat("yyyy:MM:dd_HH:mm:ss");
+					Date date = new Date();
+					boolean result = database.add_attribute("carLicense", pendingTransaction.getUname() + "#" + dateformat.format(date) + "#" + pendingTransaction.getAmount() + "#" + (isTransactionAccepted ? "1" : "0"));
+					result = (result && utils.checkTrans(database));
+					
+					if (!isTransactionAccepted)
+					{
+						response = "{'success': 0, 'message': 'rejected'}";
+					}
+					
+					if (!result)
+					{
+						response = "{'success': 0, 'message': 'error - LDAP error'}";
+					}
 				}
 				
 			} while (pendingTransaction == null);
 		}
 		catch(Exception e)
 		{
+			e.printStackTrace();
 			response = "{'success': 0, 'message': 'error - exception'}";
 			pendingTransactionsFromBank.remove(username);
 		}
@@ -217,7 +255,7 @@ public class SimpleRestService {
 				if(msg.checkOcra(imei)){
 					resp = Response.status(201).build(); 
 					messages.put(msg.getUname()+msg.getCounter(), msg);
-					pendingTransactionsFromBank.put(msg.getUname(), msg);
+					pendingTransactionsFromBank.put(msg.getUname() + msg.getCounter(), msg);
 				}else{
 					if(msg.getAnswer().equals("err")) resp = Response.status(417).build(); 
 					else resp = Response.status(500).build(); 
@@ -519,7 +557,11 @@ public class SimpleRestService {
 			
 		database = new LDAP(uname,pwd);
 		
-		if(database.is_Correct()){		
+		if(database.is_Correct()){	
+			// ked sa overi pouzivatel, tak sa pripoj ako admin s pravami na edit
+			// urobene kvoli tomu ze som nevedel nakonfigurovat LDAP ...
+			database = new LDAP(uname);
+			
 			String pin = database.get_pin();
 			
 			database.set_device_data(imei, pin, regid);
