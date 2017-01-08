@@ -135,7 +135,7 @@ public class LDAP {
         
         ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
-        password = "gbld33";
+        password = "projekt";
         searchBase = "ou=Users,dc=test,dc=sk";
         searchFilter = "uid="+username;
         
@@ -166,7 +166,7 @@ public class LDAP {
         
         ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
-        password = "gbld33";
+        password = "projekt";
         searchBase = "ou=Users,dc=test,dc=sk";
         searchFilter = "uid="+username;
         
@@ -257,7 +257,7 @@ public class LDAP {
         
         ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
-        password = "gbld33";
+        password = "projekt";
         searchBase = "ou=Users,dc=test,dc=sk";
         searchFilter = "uid="+username;
         
