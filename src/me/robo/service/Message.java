@@ -2,6 +2,8 @@ package me.robo.service;
 
 import java.math.BigInteger;
 
+import hotp.OcraGenerator;
+
 public class Message {
 
 	private String uname;
@@ -9,7 +11,7 @@ public class Message {
 	private String answer;
 	private String ocra;
 	private String counter;	
-	private int amount;
+	private double amount;
 	
 	public String getCounter() {
 		return counter;
@@ -29,7 +31,7 @@ public class Message {
 	public String getOcra() {
 		return ocra;
 	}
-	public int getAmount() {
+	public double getAmount() {
 		return amount;
 	}
 	public void setUname(String uname) {
@@ -44,18 +46,18 @@ public class Message {
 	public void setOcra(String ocra) {
 		this.ocra = ocra;
 	}
-	public void setAmount(int amount) {
+	public void setAmount(double amount) {
 		this.amount = amount;
 	}
 	
-	public boolean checkOcra(String imei){
+	public boolean checkOcra(String imei, String pin){
 		
 		try{
 			OCRAhotpGenerator ocra_gen = new OCRAhotpGenerator();
 			msg = answer +":"+ msg;
 			msg = String.format("%040x", new BigInteger(1, msg.getBytes(/*YOUR_CHARSET?*/)));
 
-			String server_ocra = ocra_gen.generateOCRA("OCRA-1:HOTP-SHA1-6:QN08", imei, msg);
+			String server_ocra = OcraGenerator.generateOCRA(imei + pin, msg);
 		
 			if(!ocra.equals(server_ocra)){
 				answer = "err";

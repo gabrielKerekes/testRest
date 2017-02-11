@@ -49,7 +49,7 @@ public class SimpleRestService {
 	@Produces(MediaType.TEXT_PLAIN)
 	public String getTest(){
 		
-		return "Tadadaaa2!!";
+		return "Tadadaaa22!!";
 	}
 	
 	@GET
@@ -251,8 +251,9 @@ public class SimpleRestService {
 			
 				database = new LDAP(msg.getUname());
 				String imei = database.get_imei();
+				String pin = database.get_pin();
 			
-				if(msg.checkOcra(imei)){
+				if(msg.checkOcra(imei, pin)){
 					resp = Response.status(201).build(); 
 					messages.put(msg.getUname()+msg.getCounter(), msg);
 					pendingTransactionsFromBank.put(msg.getUname() + msg.getCounter(), msg);
@@ -262,14 +263,14 @@ public class SimpleRestService {
 			}
 			
 			}catch(Exception e){
-			
+				e.printStackTrace();
 			}
 		} else{
 			blocked_messages.remove(msg.getUname()+msg.getCounter());
 			new App("Confirmation failed", "Time Limit= ", msg.getUname());
 		}
 		
-		return resp;
+ 		return resp;
 	}
 	
 	@GET

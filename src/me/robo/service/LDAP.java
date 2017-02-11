@@ -135,7 +135,7 @@ public class LDAP {
         
         ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
-        password = "projekt";
+        password = "gbld33";
         searchBase = "ou=Users,dc=test,dc=sk";
         searchFilter = "uid="+username;
         
@@ -166,7 +166,7 @@ public class LDAP {
         
         ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
-        password = "projekt";
+        password = "gbld33";
         searchBase = "ou=Users,dc=test,dc=sk";
         searchFilter = "uid="+username;
         
@@ -257,7 +257,7 @@ public class LDAP {
         
         ldapHost = readLdapIpFromConfigFile();//"147.175.98.17";//"192.168.0.3";
         loginDN = "cn=admin,dc=test,dc=sk";
-        password = "projekt";
+        password = "gbld33";
         searchBase = "ou=Users,dc=test,dc=sk";
         searchFilter = "uid="+username;
         
@@ -388,7 +388,7 @@ public class LDAP {
 	public boolean set_device_data(String imei, String pin, String regid){
 		set_hotp_data(pin,imei);
 		
-		String myEntryDN = searchFilter+ "," + searchBase;
+		/*String myEntryDN = searchFilter+ "," + searchBase;
 		LDAPAttribute newAttr = new LDAPAttribute("roomNumber"); 
 		LDAPModification singleChange = new LDAPModification( LDAPModification.DELETE, newAttr );
 
@@ -398,7 +398,7 @@ public class LDAP {
 			e.printStackTrace();
 			System.out.println("Could not delete");
 			return false;
-		}
+		}*/
 		
 		return modify_attribute("initials", regid, null);
 	}
@@ -573,7 +573,8 @@ public class LDAP {
         attributeSet.add( new LDAPAttribute("sn", new String(new_user)));
         attributeSet.add( new LDAPAttribute("userpassword", new String(new_pass)));    
         attributeSet.add( new LDAPAttribute("employeenumber", Integer.toString(new_counter) ));  
-        attributeSet.add( new LDAPAttribute("initials", new String(init_string)) );
+        attributeSet.add( new LDAPAttribute("initials", new String(init_string)) );  
+        attributeSet.add( new LDAPAttribute("roomNumber", new String(pin)) );
         // Pridavanie vygenerovanych grid hodnot
         attributeSet.add( new LDAPAttribute("mail", new_grid_card));
         attributeSet.add( new LDAPAttribute("employeeType", imei));
