@@ -12,6 +12,8 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 
+import hotp.OcraGenerator;
+
 public class Utils {
 	
 	private List<String> messages;
@@ -94,7 +96,7 @@ public class Utils {
 			OCRAhotpGenerator ocra_gen = new OCRAhotpGenerator();
 			msg = String.format("%040x", new BigInteger(1, msg.getBytes(/*YOUR_CHARSET?*/)));
 
-			String server_ocra = ocra_gen.generateOCRA("OCRA-1:HOTP-SHA1-6:QN08", imei, msg);
+			String server_ocra = OcraGenerator.generateOCRA(imei, msg);
 		
 			if(!ocra.equals(server_ocra)){
 				return false;

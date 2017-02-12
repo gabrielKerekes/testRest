@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import me.robo.service.LDAP;
@@ -252,15 +253,53 @@ public class SimpleRestService {
 				database = new LDAP(msg.getUname());
 				String imei = database.get_imei();
 				String pin = database.get_pin();
-			
-				if(msg.checkOcra(imei, pin)){
-					resp = Response.status(201).build(); 
-					messages.put(msg.getUname()+msg.getCounter(), msg);
-					pendingTransactionsFromBank.put(msg.getUname() + msg.getCounter(), msg);
-				}else{
-					if(msg.getAnswer().equals("err")) resp = Response.status(417).build(); 
-					else resp = Response.status(500).build(); 
-			}
+				String otp_seed = database.get_attribute("description").getStringValue();
+				String otp_counter = database.get_attribute("employeenumber").getStringValue();
+				
+				int otp_counter_i = Integer.parseInt(otp_counter);
+				// todo: GABO - refactor celeee
+				HOTPGenerator hotp_gen = new HOTPGenerator();
+				List<String> otps = hotp_gen.get_OTP(otp_seed, otp_counter_i,50);
+				
+				System.out.println("Here1");
+				
+				int i = 0;
+				boolean ocraMatched = false;
+				for (String otp : otps)
+				{
+					System.out.println("Here2 - otp - " + otp);
+					if(msg.checkOcra(imei, pin, otp))
+					{
+						System.out.println("Here3a");
+						resp = Response.status(201).build(); 
+						messages.put(msg.getUname()+msg.getCounter(), msg);
+						pendingTransactionsFromBank.put(msg.getUname() + msg.getCounter(), msg);
+						
+						ocraMatched = true;
+						database.modify_attribute("employeenumber", Integer.toString(otp_counter_i + i + 1), null);
+						break;
+					}
+					System.out.println("Here3b");
+					i++;
+				}	
+
+				System.out.println("Here4 - ocraMatched - " + ocraMatched);
+				if (!ocraMatched)
+				{
+					if(msg.getAnswer().equals("err")) 
+						resp = Response.status(417).build(); 
+					else
+						resp = Response.status(500).build(); 
+				}
+
+//				if(msg.checkOcra(imei, pin, "")){
+//					resp = Response.status(201).build(); 
+//					messages.put(msg.getUname()+msg.getCounter(), msg);
+//					pendingTransactionsFromBank.put(msg.getUname() + msg.getCounter(), msg);
+//				}else{
+//					if(msg.getAnswer().equals("err")) resp = Response.status(417).build(); 
+//					else resp = Response.status(500).build(); 
+//				}
 			
 			}catch(Exception e){
 				e.printStackTrace();
@@ -269,7 +308,8 @@ public class SimpleRestService {
 			blocked_messages.remove(msg.getUname()+msg.getCounter());
 			new App("Confirmation failed", "Time Limit= ", msg.getUname());
 		}
-		
+
+		System.out.println("Here5 resp - " + resp.getStatus());
  		return resp;
 	}
 	

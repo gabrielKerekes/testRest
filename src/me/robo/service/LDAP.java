@@ -435,7 +435,7 @@ public class LDAP {
         modify_attribute("employeenumber", Integer.toString(0),null);
 	}
 	//nacitanie pozadovaneho gridu z LDAPu
-	private LDAPAttribute get_attribute(String attName){
+	public LDAPAttribute get_attribute(String attName){
 		//nacita userove grids a do premennych "code_num" a "code" da vybrane hodnoty
 		LDAPAttribute ldap_att = null;		
 		LDAPSearchResults searchResults = null, tempResults= null;

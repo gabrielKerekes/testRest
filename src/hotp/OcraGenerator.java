@@ -66,7 +66,6 @@ public class OcraGenerator
 
         byte[] hash = hmac_sha1("HmacSHA256", bArray, msg);
 
-        // put selected bytes into result int
         int offset = hash[hash.length - 1] & 0xf;
 
         int binary =
