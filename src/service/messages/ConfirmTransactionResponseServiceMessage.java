@@ -3,8 +3,12 @@ package service.messages;
 import java.math.BigInteger;
 import ocrahotp.Ocra;
 
-public class ConfirmTransactionServiceMessage extends ServiceMessage {
+public class ConfirmTransactionResponseServiceMessage extends ServiceMessage {
 	private double amount;
+	private String accountNumber;
+
+	public String getAccountNumber() { return accountNumber; }
+	public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
 	
 	public double getAmount() {
 		return amount;

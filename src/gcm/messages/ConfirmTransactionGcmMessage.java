@@ -13,8 +13,8 @@ public class ConfirmTransactionGcmMessage extends GcmMessage {
 	private transient double amount;
 	private transient String accountNumber;
 
-	public ConfirmTransactionGcmMessage(String accountNumber, String title, String message, Timestamp timestamp, double amount) {
-		super(title, message, timestamp);
+	public ConfirmTransactionGcmMessage(String accountNumber, Timestamp timestamp, double amount) {
+		super(timestamp);
 		
 		this.setAmount(amount);
 		this.setAccountNumber(accountNumber);

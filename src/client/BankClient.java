@@ -16,6 +16,7 @@ public class BankClient {
 	private static final String BankIpAddress = "192.168.0.102";
 	
 	public static int executePost(BankMessage message) {
+		System.out.println("BANK POST - " + message.getAccountNumber() + " " + message.getTimestamp());
 		// todo: GABO - uncomment when bank ready
 //		try {
 //	        URL url = new URL(BankIpAddress);

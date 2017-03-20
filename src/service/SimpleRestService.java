@@ -1,6 +1,8 @@
 package service;
 
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -13,11 +15,13 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import ocrahotp.OtpGenerator;
 import service.LDAP;
-import service.messages.ConfirmIdentityServiceMessage;
-import service.messages.ConfirmTransactionServiceMessage;
+import service.messages.AddAccountNumberServiceMessage;
+import service.messages.ConfirmIdentityResponseServiceMessage;
+import service.messages.ConfirmTransactionResponseServiceMessage;
 import service.messages.ServiceMessage;
 
 import javax.ws.rs.Consumes;
@@ -36,11 +40,16 @@ import javax.ws.rs.core.Response;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 
+import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+
+import bank.messages.AddAccountNumberTokenBankMessage;
 import bank.messages.BankMessage;
 import bank.messages.ConfirmTransactionRequestBankMessage;
-import bank.messages.IdentityConfirmedBankMessage;
-import bank.messages.IncomingTransactionsBankMessage;
+import bank.messages.ConfirmIdentityResponseBankMessage;
+import bank.messages.ConfirmIdentityRequestBankMessage;
+import bank.messages.ConfirmTransactionResponseBankMessage;
 import client.BankClient;
+import db.MysqlDb;
 import gcm.Gcm;
 import gcm.GcmContent;
 import gcm.GcmMessageType;
@@ -54,7 +63,7 @@ public class SimpleRestService {
 	private String loginStat = new String();
 	private String regStat = new String();
 	// todo: GABO - prerobit na databazu..
-	private static Map messages = new HashMap<String, ConfirmTransactionServiceMessage>();
+	private static Map messages = new HashMap<String, ConfirmTransactionResponseServiceMessage>();
 	private static Map messages_reg = new HashMap<String, String>();
 	private static Map blocked_messages = new HashMap<String, String>();
 	private static Map req_message = new HashMap<String, String>();
@@ -68,29 +77,86 @@ public class SimpleRestService {
 	@GET
 	@Path("/getTest")
 	@Produces(MediaType.TEXT_PLAIN)
-	public String getTest(){
-		
+	public String getTest() {		
 		return "Tadadaaa!!";
 	}
 	
-	@POST
-	@Path("/confirmIdentity")
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Response confirmIdentity(ConfirmIdentityServiceMessage message) {		
-		Response resp = Response.ok().build();
-		LDAP database = new LDAP(message.getUsername());
+	@GET
+	@Path("getMysqlTest")
+	@Produces(MediaType.TEXT_PLAIN)
+	public String getMysqlTest() {
 		
-		String messageId = message.getUsername() + message.getTimestamp();
+		return "mysql test";
+	}
+	
+	@GET
+	@Path("getLdapTest")
+	@Produces(MediaType.TEXT_PLAIN)
+	public String getLdapTest(@QueryParam("accountNumber") String accountNumber) {
+		String username = "nestel84";
+		
+		LDAP ldap = new LDAP(username);		
+		
+		//return ldap.addAccountNumber(accountNumber) ? "success" : "failure";
+		
+		return ldap.getAccountNumberUsername(accountNumber);
+	}
+	
+	@GET
+	@Path("getDatabaseTest")
+	@Produces(MediaType.TEXT_PLAIN)
+	public String getDatabaseTest() {
+		String username = "nestel84";
+
+		MysqlDb database = new MysqlDb();
+		database.testDb();
+		
+		return "";
+	}
+
+	// todo: GABO - random vec vsade
+	@POST
+	@Path("/confirmIdentityRequest")
+    @Produces(MediaType.APPLICATION_JSON)
+	public Response incomingTransactions(ConfirmIdentityRequestBankMessage message) {
+		System.out.println("INCOMING TRANSACTIONS - " + message.getAccountNumber() + " " + message.getTimestamp());
+		// todo: GABO - spravit prazdny ldap konstruktor, ked chcem iba admina
+		LDAP ldap = new LDAP("");
+		
+		String username = ldap.getAccountNumberUsername(message.getAccountNumber());
+		
+		pendingIdentityConfirmations.put(username + message.getTimestamp(), message.getAccountNumber());
+
+		ConfirmIdentityGcmMessage confirmIdentityMessage = new ConfirmIdentityGcmMessage(username, message.getTimestamp());
+		new Gcm(message.getAccountNumber(), confirmIdentityMessage);
+		
+		return Response.status(201).build();
+	}
+	
+	// todo: GABO - vsade treba pridat nejaky random...
+	@POST
+	@Path("/confirmIdentityResponse")
+    @Produces(MediaType.APPLICATION_JSON)
+	public Response confirmIdentityResponse(ConfirmIdentityResponseServiceMessage message) {		
+		Response resp = Response.ok().build();
+		LDAP ldap = new LDAP(message.getUsername());
+		// todo: GABO - ked uplynul cas, tak treba dat userovi vediet ..
+		System.out.println("CONFIRM IDENTITY - " + message.getUsername() + " " + message.getTimestamp());
+
 		// todo: GABO - dat priamo do spravy, ze messageId za bude vyskladavat z username a timestampu
-		if (pendingIdentityConfirmations.remove(messageId) != null) {
-			if (checkTransactionOcra(database, message)) {
-				// todo: GABO - username to account number .. ale treba spravne account number
-				BankMessage bankMessage = new IdentityConfirmedBankMessage(message.getUsername(), message.getTimestamp());
+		String messageId = message.getUsername() + message.getTimestamp();
+		
+		Object accountNumberObject = pendingIdentityConfirmations.get(messageId);
+		if (accountNumberObject != null) {			
+			if (checkTransactionOcra(ldap, message)) {
+				String accountNumber = (String) accountNumberObject;
+				// todo: GABO - answer moze byt - confirmed, rejected, expired .. asi aj tu treba rozhodovat
+				BankMessage bankMessage = new ConfirmIdentityResponseBankMessage(accountNumber, message.getTimestamp(), message.getAnswer());
 				BankClient.executePost(bankMessage);
 			}
 			else {
 				// todo: GABO - nejak treba odlisit ocra error a pending confirmation not found
-				resp = Response.status(500).build();
+				resp = Response.status(501).build();
 			}
 		}
 		else {
@@ -100,102 +166,197 @@ public class SimpleRestService {
 		return resp;
 	}
 
-	// todo: GABO - username na account number a potom treba aj ziskat ten username0
-	@POST
-	@Path("/incomingTransactions")
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.TEXT_PLAIN)
-	public Response incomingTransactions(IncomingTransactionsBankMessage message) {
-		// todo: GABO - treba asi checknut ci user existuje v LDAPe
-		LDAP database = new LDAP(message.getAccountNumber());
-		Timestamp timestamp = new Timestamp(System.currentTimeMillis());		
-		// todo: GABO - refactor na confirmations
-		pendingIdentityConfirmations.put(message.getAccountNumber() + timestamp, "");
-
-		ConfirmIdentityGcmMessage confirmIdentityMessage = new ConfirmIdentityGcmMessage(message.getAccountNumber(), "title", message.getAccountNumber() + "timestamp + rand", timestamp);
-		new Gcm(message.getAccountNumber(), confirmIdentityMessage);
-		
-		return Response.status(201).build();
-	}
-
+	// todo: GABO - random vec vsade
 	@POST
 	@Path("/confirmTransactionRequest")
-	@Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
 	public Response confirmTransactionRequest(ConfirmTransactionRequestBankMessage message) {
-		// todo: GABO - niekde treba pouzit account number a niekde username
+		System.out.println("CONFIRM TRANSACTION REQUEST - " + message.getAccountNumber() + " " + message.getTimestamp());
+
+		LDAP ldap = new LDAP("");		
+		String username = ldap.getAccountNumberUsername(message.getAccountNumber());
 		
-		// todo: GABO - nahradit username za realne 
-		String username = message.getAccountNumber();
-		pendingTransactions.add(username + message.getTimestamp());
-		// todo: GABO - message musi mat aj username a aj account number
-		ConfirmTransactionGcmMessage confirmTransactionMessage = new ConfirmTransactionGcmMessage(message.getAccountNumber(), "title", username + "timestamp + rand", message.getTimestamp(), message.getAmount());
+		pendingTransactionsFromBank.put(username + message.getTimestamp(), message.getAccountNumber());
+
+		ConfirmTransactionGcmMessage confirmTransactionMessage = new ConfirmTransactionGcmMessage(message.getAccountNumber(), message.getTimestamp(), message.getAmount());
 		new Gcm(username, confirmTransactionMessage);		
 		
 		return Response.ok().build();
 	}
-	
-	// todo: GABO - username na account number a potom treba aj ziskat ten username0
-	@GET
-	@Path("/getTransactionConfirmation")
-	public Response getTransactionConfirmation(ConfirmTransactionRequestBankMessage message) {		
-//		String response = "";
-//		ConfirmTransactionServiceMessage pendingTransaction = null;
-//		
-//		try {
-//			ConfirmTransactionGcmMessage confirmTransactionMessage = new ConfirmTransactionGcmMessage(message.getAccountNumber(), "title", message.getAccountNumber() + "timestamp + rand", message.getTimestamp(), message.getAmount());
-//			new Gcm(message.getAccountNumber(), confirmTransactionMessage);
-//		
-//			
-//			
-//			long startTime = System.currentTimeMillis();
-//			long currentTime = 0;
-//			
-//			response = "{'success': 1, 'message': 'confirmed'}";
-//			
-//			do {				
-//				// 300000 milis = 5 minutes  
-//				if ((currentTime - startTime) >= 300000) {
-//					response = "{'success': 0, 'message': 'error - timeout'}";
-//					pendingTransactionsFromBank.remove(message.getAccountNumber());
-//					break;
-//				}
-//				
-//				// todo: GABO -  refactor
-//				pendingTransaction = (ConfirmTransactionServiceMessage) pendingTransactionsFromBank.get(message.getAccountNumber() + message.getTimestamp());
-//				
-//				if (pendingTransaction != null)	{				
-//					pendingTransactionsFromBank.remove(message.getAccountNumber() + message.getTimestamp());	
-//					
-//					LDAP database = new LDAP(message.getAccountNumber());
-//					Utils utils = new Utils();
-//					
-//					boolean isTransactionAccepted = pendingTransaction.getAnswer().equals("ano");
-//
-//					String transactionDateString = Utils.formatTransactionDate(new Date());
-//					String transactionString = Utils.buildTransactionDatabaseString(pendingTransaction.getUsername(), transactionDateString, pendingTransaction.getAmount(), isTransactionAccepted);
-//					boolean result = database.add_attribute("carLicense", transactionString);
-//					result = (result && utils.checkTrans(database));
-//					
-//					if (!isTransactionAccepted)	{
-//						response = "{'success': 0, 'message': 'rejected'}";
-//					}
-//					
-//					if (!result) {
-//						response = "{'success': 0, 'message': 'error - LDAP error'}";
-//					}
-//				}
-//				
-//			} while (pendingTransaction == null);
-//		}
-//		catch(Exception e) {
-//			e.printStackTrace();
-//			response = "{'success': 0, 'message': 'error - exception'}";
-//			pendingTransactionsFromBank.remove(message.getAccountNumber() + message.getTimestamp());
-//		}
-//		
-//        return response;
-		return Response.serverError().build();
+
+	// todo: GABO - random vec vsade
+	@POST
+	@Path("/confirmTransactionResponse")
+    @Produces(MediaType.APPLICATION_JSON)
+	public Response confirmTransactionResponse(ConfirmTransactionResponseServiceMessage message) {
+		System.out.println("CONFIRM TRANSACTION - " + message.getUsername() + " " + message.getTimestamp());
+		// todo: GABO - ked uplynul cas, tak treba dat userovi vediet ...
+		Response resp = Response.ok().build();
+		LDAP ldap = null;
+		try {			
+			ldap = new LDAP(message.getUsername());
+			
+			boolean ocraMatched = checkTransactionOcra(ldap, message);
+			if (ocraMatched) {
+				resp = Response.status(201).build(); 
+				
+				Object accountNumberObject = pendingTransactionsFromBank.get(message.getUsername() + message.getTimestamp());
+				if (accountNumberObject == null) {
+					resp = Response.status(500).build(); 
+					return resp;
+				}
+				String accountNumber = (String) accountNumberObject;
+				// todo: GABO - answer moze byt - confirmed, rejected, expired .. asi aj tu treba rozhodovat
+				ConfirmTransactionResponseBankMessage bankMessage = new ConfirmTransactionResponseBankMessage(accountNumber, message.getTimestamp(), message.getAnswer());
+				BankClient.executePost(bankMessage);
+			} 
+			else {
+				if(message.getAnswer().equals("err")) 
+					resp = Response.status(417).build(); 
+				else
+					resp = Response.status(500).build(); 
+			}			
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		return resp;
 	}
+	
+	@POST
+	@Path("/addAccountNumberToken")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response addAccountNumberToken(AddAccountNumberTokenBankMessage message) {
+		String username = message.getUsername();
+		String accountNumber = message.getAccountNumber();
+		String token = message.getToken();
+		Timestamp timestamp = message.getTimestamp();
+		
+		System.out.println("ADDING ACCOUNT NUMBER TOKEN " + accountNumber + " " + token + " " + timestamp.toString());
+		
+		LDAP ldap = new LDAP("");
+		if (!ldap.getAccountNumberUsername(accountNumber).equals("")) {
+			// todo: GABO - treba nejak dohodnut chybove responses...
+			return Response.status(501).build();
+		}
+
+		MysqlDb database = new MysqlDb();
+		if (!database.addAccountNumberToken(username,  accountNumber, token)) {
+			return Response.serverError().build();
+		}
+		
+		return Response.ok().build();
+	}
+	
+	@POST
+	@Path("/addAccountNumber")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response addAccountNumber(AddAccountNumberServiceMessage message) {
+		MysqlDb database = new MysqlDb();
+		if (database.isAccountNumberTokenValid(message.getUsername(), message.getAccountNumber(), message.getToken())) {
+			return Response.serverError().build();
+		}
+		
+		LDAP ldap = new LDAP(message.getUsername());
+		
+		if (!ldap.addAccountNumber(message.getAccountNumber())) {
+			return Response.serverError().build();
+		}
+		
+		database.removeAccountNumberToken(message.getUsername(), message.getAccountNumber(), message.getToken());
+
+		return Response.ok().build();
+	}
+	
+	private boolean checkTransactionOcra(LDAP ldap, ServiceMessage message) {
+		try {
+			String imei = ldap.get_imei();
+			String pin = ldap.get_pin();
+			String otpSeed = ldap.get_attribute("description").getStringValue();
+			String otpCounterString = ldap.get_attribute("employeenumber").getStringValue();
+			
+			int otpCounter = Integer.parseInt(otpCounterString);
+			List<String> otps = OtpGenerator.generateOTP(otpSeed, otpCounter);
+			
+			int i = 0;
+			for (String otp : otps)	{
+				if(message.checkOcra(imei, pin, otp)) {	
+					ldap.syncOtpCounter(otpCounter + i + 1);
+					return true;
+				}
+	
+				i++;
+			}	
+		} 
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+//	// todo: GABO - username na account number a potom treba aj ziskat ten username0
+//	@GET
+//	@Path("/getTransactionConfirmation")
+//	public Response getTransactionConfirmation(ConfirmTransactionRequestBankMessage message) {		
+////		String response = "";
+////		ConfirmTransactionServiceMessage pendingTransaction = null;
+////		
+////		try {
+////			ConfirmTransactionGcmMessage confirmTransactionMessage = new ConfirmTransactionGcmMessage(message.getAccountNumber(), "title", message.getAccountNumber() + "timestamp + rand", message.getTimestamp(), message.getAmount());
+////			new Gcm(message.getAccountNumber(), confirmTransactionMessage);
+////		
+////			
+////			
+////			long startTime = System.currentTimeMillis();
+////			long currentTime = 0;
+////			
+////			response = "{'success': 1, 'message': 'confirmed'}";
+////			
+////			do {				
+////				// 300000 milis = 5 minutes  
+////				if ((currentTime - startTime) >= 300000) {
+////					response = "{'success': 0, 'message': 'error - timeout'}";
+////					pendingTransactionsFromBank.remove(message.getAccountNumber());
+////					break;
+////				}
+////				
+////				// todo: GABO -  refactor
+////				pendingTransaction = (ConfirmTransactionServiceMessage) pendingTransactionsFromBank.get(message.getAccountNumber() + message.getTimestamp());
+////				
+////				if (pendingTransaction != null)	{				
+////					pendingTransactionsFromBank.remove(message.getAccountNumber() + message.getTimestamp());	
+////					
+////					LDAP database = new LDAP(message.getAccountNumber());
+////					Utils utils = new Utils();
+////					
+////					boolean isTransactionAccepted = pendingTransaction.getAnswer().equals("ano");
+////
+////					String transactionDateString = Utils.formatTransactionDate(new Date());
+////					String transactionString = Utils.buildTransactionDatabaseString(pendingTransaction.getUsername(), transactionDateString, pendingTransaction.getAmount(), isTransactionAccepted);
+////					boolean result = database.add_attribute("carLicense", transactionString);
+////					result = (result && utils.checkTrans(database));
+////					
+////					if (!isTransactionAccepted)	{
+////						response = "{'success': 0, 'message': 'rejected'}";
+////					}
+////					
+////					if (!result) {
+////						response = "{'success': 0, 'message': 'error - LDAP error'}";
+////					}
+////				}
+////				
+////			} while (pendingTransaction == null);
+////		}
+////		catch(Exception e) {
+////			e.printStackTrace();
+////			response = "{'success': 0, 'message': 'error - exception'}";
+////			pendingTransactionsFromBank.remove(message.getAccountNumber() + message.getTimestamp());
+////		}
+////		
+////        return response;
+//		return Response.serverError().build();
+//	}
 	
 	@POST
 	@Path("/postLogin")
@@ -291,7 +452,7 @@ public class SimpleRestService {
 	@POST
 	@Path("/confTrans")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public Response postMessage(ConfirmTransactionServiceMessage message) {		
+	public Response postMessage(ConfirmTransactionResponseServiceMessage message) {		
 		Response resp = Response.ok().build();
 		LDAP database = null;
 		
@@ -325,62 +486,6 @@ public class SimpleRestService {
 		}
 
  		return resp;
-	}
-	
-	@POST
-	@Path("/confirmTransaction")
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Response confirmTransaction(ConfirmTransactionServiceMessage message) {
-		Response resp = Response.ok().build();
-		LDAP database = null;
-		try {			
-			database = new LDAP(message.getUsername());
-			
-			int i = 0;
-			boolean ocraMatched = checkTransactionOcra(database, message);
-			if (ocraMatched) {
-				resp = Response.status(201).build(); 
-				if (!pendingTransactions.remove(message.getMessageId())) {
-					resp = Response.status(500).build(); 
-				}
-			} 
-			else {
-				if(message.getAnswer().equals("err")) 
-					resp = Response.status(417).build(); 
-				else
-					resp = Response.status(500).build(); 
-			}			
-		}catch(Exception e) {
-			e.printStackTrace();
-		}
-		
-		return resp;
-	}
-	
-	private boolean checkTransactionOcra(LDAP database, ServiceMessage message) {
-		try {
-			String imei = database.get_imei();
-			String pin = database.get_pin();
-			String otpSeed = database.get_attribute("description").getStringValue();
-			String otpCounterString = database.get_attribute("employeenumber").getStringValue();
-			
-			int otpCounter = Integer.parseInt(otpCounterString);
-			List<String> otps = OtpGenerator.generateOTP(otpSeed, otpCounter);
-			
-			int i = 0;
-			for (String otp : otps)	{
-				if(message.checkOcra(imei, pin, otp)) {	
-					database.syncOtpCounter(otpCounter + i + 1);
-					return true;
-				}
-	
-				i++;
-			}	
-		} 
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
 	}
 	
 	@GET
@@ -430,7 +535,7 @@ public class SimpleRestService {
 	public String getAnswer(@QueryParam("user") String user, @QueryParam("counter") String counter){
 		
 		String ret = "";
-		ConfirmTransactionServiceMessage msg = null;
+		ConfirmTransactionResponseServiceMessage msg = null;
 		
 		long startTime = System.currentTimeMillis();
 		long currentTime = 0;
@@ -447,7 +552,7 @@ public class SimpleRestService {
 				}
 				
 				
-				msg = (ConfirmTransactionServiceMessage)messages.get(user+counter);
+				msg = (ConfirmTransactionResponseServiceMessage)messages.get(user+counter);
 				
 				if(msg!=null){
 					if(msg.getAnswer().equals("ano")) ret = "1";

@@ -387,6 +387,47 @@ public class LDAP {
        return pin;            	
 	}
 	
+	public boolean addAccountNumber(String accountNumber) {
+		try {
+			return add_attribute("departmentNumber", accountNumber);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	public String getAccountNumberUsername(String accountNumber) {
+		try {
+			LDAPSearchResults searchResults = lc.search("dc=test,dc=sk", LDAPConnection.SCOPE_SUB, "(departmentNumber=" + accountNumber + ")", new String[] { "uid" }, false);
+			
+			if (searchResults != null && searchResults.hasMore()) {
+				LDAPEntry nextEntry = searchResults.next();
+				if (nextEntry != null) {
+					LDAPAttributeSet attributeSet = nextEntry.getAttributeSet();
+					LDAPAttribute attribute = attributeSet.getAttribute("uid");
+					if (attribute != null) {
+						return attribute.getStringValue();
+					}
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return "";
+	}
+	
+	public String[] getAccountNumbers() {
+		try {
+			return get_attribute("departmentNumber").getStringValueArray();	
+		} catch (Exception e) {	
+			e.printStackTrace();
+		}
+		
+		return new String[] {};
+	}
+	
 	public boolean set_device_data(String imei, String pin, String regid){
 		set_hotp_data(pin,imei);
 		

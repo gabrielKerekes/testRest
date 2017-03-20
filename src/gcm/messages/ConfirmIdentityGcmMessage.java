@@ -10,8 +10,8 @@ import gcm.GcmMessageType;
 public class ConfirmIdentityGcmMessage extends GcmMessage {
 	private String accountNumber;
 	
-	public ConfirmIdentityGcmMessage(String accountNumber, String title, String message, Timestamp timestamp) {
-		super(title, message, timestamp);
+	public ConfirmIdentityGcmMessage(String accountNumber, Timestamp timestamp) {
+		super(timestamp);
 		
 		this.accountNumber = accountNumber;
 	}

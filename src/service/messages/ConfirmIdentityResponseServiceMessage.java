@@ -4,7 +4,7 @@ import java.math.BigInteger;
 
 import ocrahotp.Ocra;
 
-public class ConfirmIdentityServiceMessage extends ServiceMessage {
+public class ConfirmIdentityResponseServiceMessage extends ServiceMessage {
 	private String accountNumber;
 
 	public String getAccountNumber() { return accountNumber; }

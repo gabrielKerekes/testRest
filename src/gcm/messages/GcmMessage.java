@@ -19,13 +19,9 @@ public abstract class GcmMessage {
     
     // transient keyword -> don't serialize to json
     private transient String username;
-    private transient String title;
-    private transient String message;
     private transient Timestamp timestamp;
     
-    public GcmMessage(String title, String message, Timestamp timestamp) {
-    	this.title = title;
-    	this.message = message;
+    public GcmMessage(Timestamp timestamp) {
     	this.timestamp = timestamp;
     	
     	registration_ids = new ArrayList<String>();
@@ -38,12 +34,6 @@ public abstract class GcmMessage {
 	public Timestamp getTimestamp() { return timestamp; }
 	public void setTimestamp(Timestamp timestamp) { this.timestamp = timestamp; }
 	
-	public String getTitle() { return title; }
-	public void setTitle(String title) { this.title = title; }
-	
-	public String getMessage() { return message; }
-	public void setMessage(String message) { this.message = message; }
-	
 	protected void putData(String key, String value) {
 		data.put(key, value);
 	}
@@ -53,8 +43,6 @@ public abstract class GcmMessage {
 			data = new HashMap<String, String>();
 		}
 		
-		putData("title", title);
-		putData("message", message);
 		putData("timestamp", timestamp.toString());
 	}
 

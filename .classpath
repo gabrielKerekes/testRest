@@ -24,5 +24,6 @@
 	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/httpcore-4.3.jar"/>
 	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/json-simple-1.1.1.jar"/>
 	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/jackson-all-1.9.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/GabrielK/skola/timak/testRest/WebContent/WEB-INF/lib/mysql-connector-java-5.1.41-bin.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

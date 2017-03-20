@@ -2,9 +2,16 @@ package bank.messages;
 
 import java.sql.Timestamp;
 
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
+
+import service.messages.DateDeserializer;
+
 public class BankMessage {
 	private String accountNumber;
+	@JsonDeserialize(using = DateDeserializer.class)
 	private Timestamp timestamp;
+	
+	public BankMessage() { }
 	
 	public BankMessage(String accountNumber, Timestamp timestamp) {
 		this.accountNumber = accountNumber;
