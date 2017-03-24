@@ -37,11 +37,11 @@ public class MysqlDb {
 		}
 	}
 	
-	public boolean addAccountNumberToken(String username, String accountNumber, String token) {
+	public boolean addAccountNumberToken(String accountNumber, String token) {
 		String query = String.format(
-				"INSERT INTO AccountNumberToken (Username, AccountNumber, Token)" + 
-				"VALUES('%s', '%s', '%s')",
-				username, accountNumber, token);
+				"INSERT INTO AccountNumberToken (AccountNumber, Token)" + 
+				"VALUES('%s', '%s')",
+				accountNumber, token);
 				
 		return executePreparedStatement(query);
 	}

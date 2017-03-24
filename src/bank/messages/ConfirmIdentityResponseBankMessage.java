@@ -6,6 +6,10 @@ public class ConfirmIdentityResponseBankMessage extends BankMessage {
 	// todo: GABO - rename
 	private String answer;
 	
+	public ConfirmIdentityResponseBankMessage() {
+		
+	}
+	
 	public ConfirmIdentityResponseBankMessage(String accountNumber, Timestamp timestamp, String answer) {
 		super(accountNumber, timestamp);
 	}

@@ -13,7 +13,7 @@ public class ConfirmIdentityResponseServiceMessage extends ServiceMessage {
 	@Override
 	public boolean checkOcra(String imei, String pin, String otp) {		
 		try {
-			String messageBytes = String.format("%040x", new BigInteger(1, getMessage().getBytes()));
+			String messageBytes = String.format("%040x", new BigInteger(1, (getTimestamp() + getAccountNumber()).getBytes()));
 			
 			String server_ocra = Ocra.generateOCRA(imei, pin, otp, messageBytes);
 

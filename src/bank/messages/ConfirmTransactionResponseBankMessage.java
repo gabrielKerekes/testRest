@@ -3,15 +3,25 @@ package bank.messages;
 import java.sql.Timestamp;
 
 public class ConfirmTransactionResponseBankMessage extends BankMessage {
-	// todo: GABO - rename
-	private String answer;
+	public static class StatusString {
+		public static String EXPIRED = "EXPIRED";
+		public static String CONFIRMED = "CONFIRMED";
+		public static String REJECTED = "REJECTED";
+		public static String ERROR = "ERROR";
+	}
 	
-	public ConfirmTransactionResponseBankMessage(String accountNumber, Timestamp timestamp, String answer) {
-		super(accountNumber, timestamp);
+	private String status;
+	
+	public ConfirmTransactionResponseBankMessage() {
 		
-		this.answer = answer;
+	}
+	
+	public ConfirmTransactionResponseBankMessage(String paymentId, Timestamp timestamp, String status) {
+		super("", timestamp);
+		
+		this.status = status;
 	}
 
-	public String getAnswer() { return answer; }
-	public void setAnswer(String answer) { this.answer = answer; }
+	public String getStatus() { return status; }
+	public void setStatus(String status) { this.status = status; }
 }

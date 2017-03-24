@@ -12,10 +12,12 @@ public class ConfirmTransactionGcmMessage extends GcmMessage {
 	// transient so it doesn't serialize
 	private transient double amount;
 	private transient String accountNumber;
+	private transient String paymentId;
 
-	public ConfirmTransactionGcmMessage(String accountNumber, Timestamp timestamp, double amount) {
+	public ConfirmTransactionGcmMessage(String accountNumber, String paymentId, Timestamp timestamp, double amount) {
 		super(timestamp);
 		
+		this.setPaymentId(paymentId);
 		this.setAmount(amount);
 		this.setAccountNumber(accountNumber);
 	}
@@ -27,10 +29,13 @@ public class ConfirmTransactionGcmMessage extends GcmMessage {
 		putData("messageType", Integer.toString(GcmMessageType.CONFIRM_TRANSACTION.ordinal()));
 		putData("amount", Double.toString(getAmount()));
 		putData("accountNumber", getAccountNumber());
+		putData("paymentId", getPaymentId());
 	}
 
 	public double getAmount() {	return amount; }
 	public void setAmount(double amount) { this.amount = amount; }
 	public String getAccountNumber() { return accountNumber; }
 	public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
+	public String getPaymentId() { return paymentId; }
+	public void setPaymentId(String paymentId) { this.paymentId = paymentId; }
 }

@@ -6,27 +6,24 @@ import ocrahotp.Ocra;
 public class ConfirmTransactionResponseServiceMessage extends ServiceMessage {
 	private double amount;
 	private String accountNumber;
-
+	private String paymentId;
+	
+	public double getAmount() {	return amount;	}	
+	public void setAmount(double amount) { this.amount = amount; }
 	public String getAccountNumber() { return accountNumber; }
 	public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
-	
-	public double getAmount() {
-		return amount;
-	}
-	
-	public void setAmount(double amount) {
-		this.amount = amount;
-	}
+	public String getPaymentId() { return paymentId; }
+	public void setPaymentId(String paymentId) { this.paymentId = paymentId; }
 	
 	@Override
 	public boolean checkOcra(String imei, String pin, String otp) {		
 		try {			
-			String messageAndAnswer = getAnswer() +":"+ getMessage();
-			String byteMessage = String.format("%040x", new BigInteger(1, messageAndAnswer.getBytes()));
+			String stringForOcra = getPaymentId() + getTimestamp();
+			String hexStringForOcra = String.format("%040x", new BigInteger(1, stringForOcra.getBytes()));
 			
-			String server_ocra = Ocra.generateOCRA(imei, pin, otp, byteMessage);
+			String serverOcra = Ocra.generateOCRA(imei, pin, otp, hexStringForOcra);
 
-			if(getOcra().equals(server_ocra)) {
+			if(getOcra().equals(serverOcra)) {
 				return true;
 			}
 
