@@ -79,6 +79,24 @@ public class LDAP {
 
 		return ldapIp;
 	}
+	
+	public LDAP() {
+		ldapPort = LDAPConnection.DEFAULT_PORT;
+        searchScope = LDAPConnection.SCOPE_ONE;
+        ldapVersion  = LDAPConnection.LDAP_V3;
+        attributeOnly = false;
+        
+        ldapHost = readLdapIpFromConfigFile();
+        loginDN = "cn=admin,dc=test,dc=sk";
+        password = "projekt";
+        
+        lc = new LDAPConnection();
+        try {
+			connect();
+		} catch (UnsupportedEncodingException e) {
+			System.out.println("Error appeared");
+		}
+	}
 
 	//konstruktor pre prihlasenie
 	public LDAP(String username, String passwrd, String grid, String number, String otp){

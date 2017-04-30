@@ -10,9 +10,12 @@ import java.util.Properties;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.sql.Timestamp;
 
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
+// todo: GABO - rename
+// todo: GABO - refactor
 public class MysqlDb {
 	private MysqlDataSource mysqlDataSource;
 	
@@ -67,15 +70,60 @@ public class MysqlDb {
 			e.printStackTrace();
 		} finally {
 			try {
+				if (resultSet != null) resultSet.close();
 				if (statement != null) statement.close();
 				if (connection != null) connection.close();
-				if (resultSet != null) resultSet.close();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
 		}
 		
 		return false;
+	}
+	
+	public boolean isAccountNumberAuthenticated(String accountNumber, Timestamp timestamp, long authenticationPeriod) {
+		String query = String.format(
+				"SELECT * FROM AccountNumberAuthentication " + 
+				"WHERE accountNumber='%s'",
+				accountNumber);
+
+		Connection connection = null;
+		Statement statement = null;
+		ResultSet resultSet = null;
+		
+		try {
+			connection = mysqlDataSource.getConnection();
+			statement = connection.createStatement();
+
+			resultSet = statement.executeQuery(query);
+			if (resultSet != null) {
+				if (resultSet.next()) {
+					Timestamp dbTimestamp = resultSet.getTimestamp("timestamp");					
+					return timestamp.getTime() - dbTimestamp.getTime() < authenticationPeriod;
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (resultSet != null) resultSet.close();
+				if (statement != null) statement.close();
+				if (connection != null) connection.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return false;
+	}
+	
+	public boolean setAccountNumberAuthenticated(String accountNumber, Timestamp timestamp) {
+		String query = String.format(
+				"REPLACE INTO AccountNumberAuthentication " + 
+				"VALUES('%s', '%s')",
+				accountNumber, timestamp);
+		
+		return executePreparedStatement(query);
 	}
 	
 	public boolean removeAccountNumberToken(String username, String accountNumber, String token) {
@@ -103,6 +151,7 @@ public class MysqlDb {
 			e.printStackTrace();
 		} finally {
 			try {
+				if (resultSet != null) resultSet.close();
 				if (statement != null) statement.close();
 				if (connection != null) connection.close();
 			} catch (SQLException e) {
