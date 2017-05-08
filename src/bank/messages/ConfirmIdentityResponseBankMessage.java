@@ -13,6 +13,10 @@ public class ConfirmIdentityResponseBankMessage extends BankMessage {
 	
 	public ConfirmIdentityResponseBankMessage(String accountNumber, Timestamp timestamp, String answer, String guid, String action) {
 		super(accountNumber, timestamp);
+		
+		this.answer = answer;
+		this.guid = guid;
+		this.action = action;
 	}
 
 	public String getAnswer() { return answer; }

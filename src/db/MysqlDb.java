@@ -16,6 +16,7 @@ import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
 // todo: GABO - rename
 // todo: GABO - refactor
+// todo: GABO - kazda tabulka nech ma svoju classu
 public class MysqlDb {
 	private MysqlDataSource mysqlDataSource;
 	
@@ -42,18 +43,18 @@ public class MysqlDb {
 	
 	public boolean addAccountNumberToken(String accountNumber, String token) {
 		String query = String.format(
-				"INSERT INTO AccountNumberToken (AccountNumber, Token)" + 
+				"INSERT INTO AccountNumberToken (AccountNumber, Token) " + 
 				"VALUES('%s', '%s')",
 				accountNumber, token);
 				
 		return executePreparedStatement(query);
 	}
 	
-	public boolean isAccountNumberTokenValid(String username, String accountNumber, String token) {
+	public boolean isAccountNumberTokenValid(String accountNumber, String token) {
 		String query = String.format(
 				"SELECT * FROM AccountNumberToken " + 
-				"WHERE username='%s' AND accountNumber='%s' AND token='%s'",
-				username, accountNumber, token);
+				"WHERE accountNumber='%s' AND token='%s'",
+				accountNumber, token);
 
 		Connection connection = null;
 		Statement statement = null;
@@ -82,6 +83,8 @@ public class MysqlDb {
 	}
 	
 	public boolean isAccountNumberAuthenticated(String accountNumber, Timestamp timestamp, long authenticationPeriod) {
+		System.out.println("DB: isAccountNumberAuthenticated - " + accountNumber + " " + timestamp);
+		
 		String query = String.format(
 				"SELECT * FROM AccountNumberAuthentication " + 
 				"WHERE accountNumber='%s'",
@@ -118,6 +121,8 @@ public class MysqlDb {
 	}
 	
 	public boolean setAccountNumberAuthenticated(String accountNumber, Timestamp timestamp) {
+		System.out.println("DB: setAccountNumberAuthenticated - " + accountNumber + " " + timestamp);
+		
 		String query = String.format(
 				"REPLACE INTO AccountNumberAuthentication " + 
 				"VALUES('%s', '%s')",
@@ -126,13 +131,112 @@ public class MysqlDb {
 		return executePreparedStatement(query);
 	}
 	
-	public boolean removeAccountNumberToken(String username, String accountNumber, String token) {
+	public boolean removeAccountNumberToken(String accountNumber, String token) {
 		String query = String.format(
 				"DELETE FROM AccountNumberToken " + 
-				"WHERE username='%s' AND accountNumber='%s' AND token='%s'",
-				username, accountNumber, token);
+				"WHERE accountNumber='%s' AND token='%s'",
+				accountNumber, token);
 		
 		return executePreparedStatement(query);
+	}
+	
+	public boolean addPendingIdentityConfirmation(String key, String accountNumber) {
+		System.out.println("DB: addPendingIdentityConfirmation - key: " + key + " accountNumber: " + accountNumber);
+		
+		String query = String.format(
+				"INSERT INTO PendingIdentityConfirmation (Token, AccountNumber) " + 
+				"VALUES('%s', '%s')",
+				key, accountNumber);
+				
+		return executePreparedStatement(query);
+	}
+	
+	public String getPendingIdentityConfirmation(String key) {
+		System.out.println("DB: getPendingIdentityConfirmation - key: " + key);
+		
+		// token used in db, because Key can't be used
+		String query = String.format(
+				"SELECT * FROM PendingIdentityConfirmation " + 
+				"WHERE Token='%s'",
+				key);
+
+		Connection connection = null;
+		Statement statement = null;
+		ResultSet resultSet = null;
+		
+		try {
+			connection = mysqlDataSource.getConnection();
+			statement = connection.createStatement();
+
+			resultSet = statement.executeQuery(query);
+			if (resultSet != null) {
+				if (resultSet.next()) {
+					return resultSet.getString("AccountNumber");					
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (resultSet != null) resultSet.close();
+				if (statement != null) statement.close();
+				if (connection != null) connection.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return null;
+	}
+	
+	public boolean addPendingTransaction(String key, String paymentId) {
+		System.out.println("DB: addPendingTransaction - key: " + key + " paymentId: " + paymentId);
+
+		// token used in db, because Key can't be used
+		String query = String.format(
+				"INSERT INTO PendingTransaction (Token, PaymentId) " + 
+				"VALUES('%s', '%s')",
+				key, paymentId);
+				
+		return executePreparedStatement(query);
+	}
+	
+	public String getPendingTransaction(String key)	{
+		System.out.println("DB: getPendingTransaction - key: " + key);
+
+		// token used in db, because Key can't be used
+		String query = String.format(
+				"SELECT * FROM PendingTransaction " + 
+				"WHERE Token='%s'",
+				key);
+
+		Connection connection = null;
+		Statement statement = null;
+		ResultSet resultSet = null;
+		
+		try {
+			connection = mysqlDataSource.getConnection();
+			statement = connection.createStatement();
+
+			resultSet = statement.executeQuery(query);
+			if (resultSet != null) {
+				if (resultSet.next()) {
+					return resultSet.getString("PaymentId");					
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (resultSet != null) resultSet.close();
+				if (statement != null) statement.close();
+				if (connection != null) connection.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return null;
 	}
 	
 	private ResultSet executeQuery(String query) {

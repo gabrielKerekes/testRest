@@ -67,14 +67,14 @@ public class SimpleRestService {
 	private String loginStat = new String();
 	private String regStat = new String();
 	// todo: GABO - prerobit na databazu..
-	private static Map messages = new HashMap<String, ConfirmTransactionResponseServiceMessage>();
-	private static Map messages_reg = new HashMap<String, String>();
-	private static Map blocked_messages = new HashMap<String, String>();
-	private static Map req_message = new HashMap<String, String>();
-	private static Map pendingTransactionsFromBank = new HashMap<String, String>();
+//	private static Map messages = new HashMap<String, ConfirmTransactionResponseServiceMessage>();
+//	private static Map messages_reg = new HashMap<String, String>();
+//	private static Map blocked_messages = new HashMap<String, String>();
+//	private static Map req_message = new HashMap<String, String>();
+//	private static Map pendingTransactionsFromBank = new HashMap<String, String>();
 	// todo: GABO - implement blocked
-	private static Map blockedPendingTransactionsFromBank = new HashMap<String, String>();
-	private static Map pendingIdentityConfirmations = new HashMap<String, String>();
+//	private static Map blockedPendingTransactionsFromBank = new HashMap<String, String>();
+//	private static Map pendingIdentityConfirmations = new HashMap<String, String>();
 	
 	private static List<String> pendingTransactions = new ArrayList<String>();
 	
@@ -166,9 +166,14 @@ public class SimpleRestService {
 			
 			String username = ldap.getAccountNumberUsername(message.getAccountNumber());
 			
-			pendingIdentityConfirmations.put(username + message.getTimestamp() + message.getGuid(), message.getAccountNumber());
-	
-			ConfirmIdentityGcmMessage confirmIdentityMessage = new ConfirmIdentityGcmMessage(username, message.getTimestamp(), message.getGuid(), message.getAction());
+			// todo: GABO - test
+			//pendingIdentityConfirmations.put(username + message.getTimestamp() + message.getGuid(), message.getAccountNumber());
+			if (!database.addPendingIdentityConfirmation(username + message.getTimestamp() + message.getGuid(), message.getAccountNumber())) {
+				System.out.println("DBERROR: addPendingIdentityConfirmation returned false");
+				return new MyResponse(false, MyResponse.ResponseString.ERROR);
+			}
+			
+			ConfirmIdentityGcmMessage confirmIdentityMessage = new ConfirmIdentityGcmMessage(message.getAccountNumber(), message.getTimestamp(), message.getGuid(), message.getAction());
 			new Gcm(username, confirmIdentityMessage);	
 		} catch (Exception e) {
 			response = new MyResponse(false, MyResponse.ResponseString.EXCEPTION, e.getMessage());		
@@ -188,12 +193,20 @@ public class SimpleRestService {
 			System.out.println("CONFIRM IDENTITY RESPONSE - " + message.getUsername() + " " + message.getTimestamp() + " " + message.getGuid());
 
 			String messageId = message.getUsername() + message.getTimestamp() + message.getGuid();
+
+			// todo: GABO - test
+			//Object accountNumberObject = pendingIdentityConfirmations.get(messageId);
+
+			MysqlDb database = new MysqlDb();
+			String accountNumber = database.getPendingIdentityConfirmation(messageId);
 			
-			Object accountNumberObject = pendingIdentityConfirmations.get(messageId);
 			// if there was a pending identity confirmation and it isn't expired yet
-			if (accountNumberObject != null && (new Date().getTime() - message.getTimestamp().getTime()) < confirmIdentityExpirationPeriod) {			
-				if (checkTransactionOcra(ldap, message)) {
-					String accountNumber = (String) accountNumberObject;					
+			if (accountNumber != null && (new Date().getTime() - message.getTimestamp().getTime()) < confirmIdentityExpirationPeriod) {			
+				if (checkTransactionOcra(ldap, message)) {	
+					if (!database.setAccountNumberAuthenticated(message.getAccountNumber(), message.getTimestamp())) {
+						System.out.println("DBERROR: setAccountNumberAuthenticated");
+						return new MyResponse(false, MyResponse.ResponseString.ERROR);
+					}
 					sendIdentityConfirmedMessageToBank(accountNumber, message.getTimestamp(), message.getAnswer(), message.getGuid(), message.getAction());
 				}
 				else {
@@ -213,7 +226,7 @@ public class SimpleRestService {
 	// todo: GABO - tu asi vobec netreba answer ....
 	private void sendIdentityConfirmedMessageToBank(String accountNumber, Timestamp timestamp, String answer, String guid, String action) {
 		BankMessage bankMessage = new ConfirmIdentityResponseBankMessage(accountNumber, timestamp, answer, guid, action);
-		BankClient.executePost("confirmIdentity", bankMessage);
+		BankClient.executePost("identity", bankMessage);
 	}
 
 	@POST
@@ -227,9 +240,15 @@ public class SimpleRestService {
 	
 			LDAP ldap = new LDAP("");		
 			String username = ldap.getAccountNumberUsername(message.getAccountNumber());
+
+			// todo: GABO - test
+			//pendingTransactionsFromBank.put(username + message.getTimestamp() + message.getPaymentId(), message.getPaymentId());
+			MysqlDb database = new MysqlDb();
+			if (!database.addPendingTransaction(username + message.getTimestamp() + message.getPaymentId(), message.getPaymentId())) {
+				System.out.println("DBERROR: addPendingTransaction returned false");
+				return new MyResponse(false, MyResponse.ResponseString.ERROR);
+			}
 			
-			pendingTransactionsFromBank.put(username + message.getTimestamp() + message.getPaymentId(), message.getPaymentId());
-	
 			ConfirmTransactionGcmMessage confirmTransactionMessage = new ConfirmTransactionGcmMessage(message.getAccountNumber(), message.getPaymentId(), message.getTimestamp(), message.getAmount());
 			new Gcm(username, confirmTransactionMessage);	
 		} catch (Exception e) {
@@ -252,9 +271,13 @@ public class SimpleRestService {
 			ldap = new LDAP(message.getUsername());
 			
 			boolean ocraMatched = checkTransactionOcra(ldap, message);
-			if (ocraMatched) {				
-				Object paymentIdObject = pendingTransactionsFromBank.get(message.getUsername() + message.getTimestamp() + message.getPaymentId());
-				if (paymentIdObject == null || (new Date().getTime() - message.getTimestamp().getTime()) > confirmTransactionExpirationPeriod) {
+			if (ocraMatched) {		
+				// todo: GABO - test		
+				//Object paymentIdObject = pendingTransactionsFromBank.get(message.getUsername() + message.getTimestamp() + message.getPaymentId());
+				MysqlDb database = new MysqlDb();
+				String paymentId = database.getPendingTransaction(message.getUsername() + message.getTimestamp() + message.getPaymentId());
+				
+				if (paymentId == null || (new Date().getTime() - message.getTimestamp().getTime()) > confirmTransactionExpirationPeriod) {
 					ConfirmTransactionResponseBankMessage bankMessage = new ConfirmTransactionResponseBankMessage(message.getPaymentId(), message.getTimestamp(), StatusString.EXPIRED);
 					BankClient.executePost("transaction", bankMessage);
 					
@@ -315,7 +338,7 @@ public class SimpleRestService {
 		
 		try {
 			MysqlDb database = new MysqlDb();
-			if (!database.isAccountNumberTokenValid(message.getUsername(), message.getAccountNumber(), message.getToken())) {
+			if (!database.isAccountNumberTokenValid(message.getAccountNumber(), message.getToken())) {
 				return new MyResponse(false, MyResponse.ResponseString.TOKEN_COMBINATION_ERROR);
 			}
 			
@@ -325,7 +348,7 @@ public class SimpleRestService {
 				return new MyResponse(false, MyResponse.ResponseString.ACCOUNT_NUMBER_ERROR);
 			}
 			
-			database.removeAccountNumberToken(message.getUsername(), message.getAccountNumber(), message.getToken());
+			database.removeAccountNumberToken(message.getAccountNumber(), message.getToken());
 		} catch (Exception e) {
 			
 		}
@@ -381,32 +404,33 @@ public class SimpleRestService {
 			
         return resp;	
 	}
-	
-	@POST
-	@Path("/postRegister")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response getRegisterStatus(RegData reg) {
-		
-		LDAP database = null;
-		Response resp = Response.ok().build();
-		
-		reg.makeGrid();
-		
-		req_message.put(reg.getUname(), "");
-		
-		database = new LDAP(reg.getUname(),reg.getPwd(),
-				reg.getMail(),reg.getGrid_card(),reg.getPin());
-		               
-		//nastavenie msg podla uspesneho/neuspesneho registracie
-		if(database.create()){  
-			resp = Response.status(201).build();
-		}
-	 	else{
-	 		resp = Response.status(417).build();
-		}
-		
-        return resp;	
-	}
+
+	// todo: GABO - check if really not needed .. maybe delete after
+//	@POST
+//	@Path("/postRegister")
+//	@Produces(MediaType.APPLICATION_JSON)
+//	public Response getRegisterStatus(RegData reg) {
+//		
+//		LDAP database = null;
+//		Response resp = Response.ok().build();
+//		
+//		reg.makeGrid();
+//		
+//		req_message.put(reg.getUname(), "");
+//		
+//		database = new LDAP(reg.getUname(),reg.getPwd(),
+//				reg.getMail(),reg.getGrid_card(),reg.getPin());
+//		               
+//		//nastavenie msg podla uspesneho/neuspesneho registracie
+//		if(database.create()){  
+//			resp = Response.status(201).build();
+//		}
+//	 	else{
+//	 		resp = Response.status(417).build();
+//		}
+//		
+//        return resp;	
+//	}
 	
 	@POST
 	@Path("/changeAtt")
@@ -490,89 +514,90 @@ public class SimpleRestService {
  		return resp;
 	}
 	
-	@GET
-	@Path("/getRegStatus")
-	@Produces(MediaType.TEXT_PLAIN)
-	public String isRegFinished(@QueryParam("user") String user){
-		
-		String ret = "";
-		String msg = null;
+	// todo: GABO - check if really not needed .. maybe delete after
+//	@GET
+//	@Path("/getRegStatus")
+//	@Produces(MediaType.TEXT_PLAIN)
+//	public String isRegFinished(@QueryParam("user") String user){
+//		
+//		String ret = "";
+//		String msg = null;
+//
+//		long startTime = System.currentTimeMillis();
+//		long currentTime = 0;
+//		
+//		try{			
+//			do{
+//				currentTime = System.currentTimeMillis();
+//				
+//				if((currentTime-startTime)>= 600000){
+//					ret = "err";
+//					messages_reg.remove(user);
+//					req_message.remove(user);
+//					break;
+//				}
+//				
+//				msg = (String)messages_reg.get(user);
+//				
+//				if(msg!=null){				
+//					messages_reg.remove(user);
+//				}
+//				
+//				ret = "suc";
+//				
+//			}while(msg == null);
+//			
+//		}catch(Exception e){
+//			messages_reg.remove(user);
+//			ret = "err";
+//		}
+//		
+//		return ret;
+//	}
 
-		long startTime = System.currentTimeMillis();
-		long currentTime = 0;
-		
-		try{			
-			do{
-				currentTime = System.currentTimeMillis();
-				
-				if((currentTime-startTime)>= 600000){
-					ret = "err";
-					messages_reg.remove(user);
-					req_message.remove(user);
-					break;
-				}
-				
-				msg = (String)messages_reg.get(user);
-				
-				if(msg!=null){				
-					messages_reg.remove(user);
-				}
-				
-				ret = "suc";
-				
-			}while(msg == null);
-			
-		}catch(Exception e){
-			messages_reg.remove(user);
-			ret = "err";
-		}
-		
-		return ret;
-	}
-	
-	
-	@GET
-	@Path("/getAnswer")
-	@Produces(MediaType.TEXT_PLAIN)
-	public String getAnswer(@QueryParam("user") String user, @QueryParam("counter") String counter){
-		
-		String ret = "";
-		ConfirmTransactionResponseServiceMessage msg = null;
-		
-		long startTime = System.currentTimeMillis();
-		long currentTime = 0;
-		
-		try{			
-			do{
-				currentTime = System.currentTimeMillis();
-				
-				if((currentTime-startTime)>= 300000){
-					ret = "err";
-					messages.remove(user+counter);
-					blocked_messages.put(user+counter, "");
-					break;
-				}
-				
-				
-				msg = (ConfirmTransactionResponseServiceMessage)messages.get(user+counter);
-				
-				if(msg!=null){
-					if(msg.getAnswer().equals("ano")) ret = "1";
-					else ret = "0";
-					
-					messages.remove(user+counter);
-				}
-				
-			}while(msg == null);
-			
-		}catch(Exception e){
-			messages.remove(user+counter);
-			blocked_messages.put(user+counter, "");
-			ret = "err";
-		}
-		
-		return ret;
-	}
+	// todo: GABO - check if really not needed .. maybe delete after	
+//	@GET
+//	@Path("/getAnswer")
+//	@Produces(MediaType.TEXT_PLAIN)
+//	public String getAnswer(@QueryParam("user") String user, @QueryParam("counter") String counter){
+//		
+//		String ret = "";
+//		ConfirmTransactionResponseServiceMessage msg = null;
+//		
+//		long startTime = System.currentTimeMillis();
+//		long currentTime = 0;
+//		
+//		try{			
+//			do{
+//				currentTime = System.currentTimeMillis();
+//				
+//				if((currentTime-startTime)>= 300000){
+//					ret = "err";
+//					messages.remove(user+counter);
+//					blocked_messages.put(user+counter, "");
+//					break;
+//				}
+//				
+//				
+//				msg = (ConfirmTransactionResponseServiceMessage)messages.get(user+counter);
+//				
+//				if(msg!=null){
+//					if(msg.getAnswer().equals("ano")) ret = "1";
+//					else ret = "0";
+//					
+//					messages.remove(user+counter);
+//				}
+//				
+//			}while(msg == null);
+//			
+//		}catch(Exception e){
+//			messages.remove(user+counter);
+//			blocked_messages.put(user+counter, "");
+//			ret = "err";
+//		}
+//		
+//		return ret;
+//	}
 	
 	@POST
 	@Path("/deleteReg")
@@ -588,17 +613,18 @@ public class SimpleRestService {
 		
 		return resp;
 	}
-	
-	@POST
-	@Path("/reqMess")
-    @Consumes(MediaType.TEXT_PLAIN)
-	public Response reqMess(String uname) {
-		Response resp = Response.ok().build();
-		
-		req_message.put(uname, "");
-		
-		return resp;
-	}
+
+	// todo: GABO - check if really not needed .. maybe delete after
+//	@POST
+//	@Path("/reqMess")
+//    @Consumes(MediaType.TEXT_PLAIN)
+//	public Response reqMess(String uname) {
+//		Response resp = Response.ok().build();
+//		
+//		req_message.put(uname, "");
+//		
+//		return resp;
+//	}
 	
 	@POST
 	@Path("/writePIN")
@@ -638,7 +664,8 @@ public class SimpleRestService {
 		return resp;
 	}
 	
-	
+
+	// todo: GABO - check if really not needed .. maybe delete after
 	@POST
 	@Path("/writeTransDev")
     @Consumes(MediaType.TEXT_PLAIN)
@@ -742,60 +769,61 @@ public class SimpleRestService {
 		
 		return resp;
 	}
-	
-	@GET
-	@Path("/synchronizeDev")
-	@Produces(MediaType.TEXT_PLAIN)
-	public String synchronizeDevice(@QueryParam("data") String data){
-		
-		LDAP database = null;
-		RegistrationUtils utils = new RegistrationUtils();
-		String uname="";
-		String pwd="";
-		String regid="";
-		String imei="";		
-		String[] splittedData;
-		String ret = "";
-		
-		try{
-			
-		splittedData = data.split(":");
-		
-		uname = splittedData[0];
-		pwd = splittedData[1];
-		regid = splittedData[2];
-		imei = splittedData[3];
-		
-		if(!req_message.containsKey(uname)){
-			throw new Exception("Not Requested");
-		}else req_message.remove(uname);
-			
-		database = new LDAP(uname,pwd);
-		
-		if(database.is_Correct()){	
-			// ked sa overi pouzivatel, tak sa pripoj ako admin s pravami na edit
-			// urobene kvoli tomu ze som nevedel nakonfigurovat LDAP ...
-			database = new LDAP(uname);
-			
-			String pin = database.get_pin();
-			
-			database.set_device_data(imei, pin, regid);
-			
-			String[] grid = database.get_gridCard(pwd);
-			
-			ret = utils.enc_grid_card(pwd, grid);
-			
-			messages_reg.put(uname, "Done");
-		}else{
-			ret = "err";
-		}
-			
-		}catch(Exception e){
-			ret = "err";
-		}
-		
-		return ret;
-	}
+
+	// todo: GABO - check if really not needed .. maybe delete after
+//	@GET
+//	@Path("/synchronizeDev")
+//	@Produces(MediaType.TEXT_PLAIN)
+//	public String synchronizeDevice(@QueryParam("data") String data){
+//		
+//		LDAP database = null;
+//		RegistrationUtils utils = new RegistrationUtils();
+//		String uname="";
+//		String pwd="";
+//		String regid="";
+//		String imei="";		
+//		String[] splittedData;
+//		String ret = "";
+//		
+//		try{
+//			
+//		splittedData = data.split(":");
+//		
+//		uname = splittedData[0];
+//		pwd = splittedData[1];
+//		regid = splittedData[2];
+//		imei = splittedData[3];
+//		
+//		if(!req_message.containsKey(uname)){
+//			throw new Exception("Not Requested");
+//		}else req_message.remove(uname);
+//			
+//		database = new LDAP(uname,pwd);
+//		
+//		if(database.is_Correct()){	
+//			// ked sa overi pouzivatel, tak sa pripoj ako admin s pravami na edit
+//			// urobene kvoli tomu ze som nevedel nakonfigurovat LDAP ...
+//			database = new LDAP(uname);
+//			
+//			String pin = database.get_pin();
+//			
+//			database.set_device_data(imei, pin, regid);
+//			
+//			String[] grid = database.get_gridCard(pwd);
+//			
+//			ret = utils.enc_grid_card(pwd, grid);
+//			
+//			messages_reg.put(uname, "Done");
+//		}else{
+//			ret = "err";
+//		}
+//			
+//		}catch(Exception e){
+//			ret = "err";
+//		}
+//		
+//		return ret;
+//	}
 	
 	
 	@GET

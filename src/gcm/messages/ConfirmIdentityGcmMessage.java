@@ -27,6 +27,7 @@ public class ConfirmIdentityGcmMessage extends GcmMessage {
 		putData("messageType", Integer.toString(GcmMessageType.CONFIRM_IDENTITY.ordinal()));
 		putData("accountNumber", accountNumber);
 		putData("guid", guid);
+		putData("action", action);
 	}
 
 	public String getAccountNumber() { return accountNumber; }

@@ -15,7 +15,7 @@ import com.google.gson.Gson;
 import bank.messages.BankMessage;
 
 public class BankClient {
-	private static final String AddressBase = "http://127.0.0.1:8081/BankServer2/bank/rest/";
+	private static final String AddressBase = "http://127.0.0.1:8080/BankServer2/bank/rest/";
 	
 	public static int executePost(String request, BankMessage message) {
 		if (!request.equals("getTest")) {
