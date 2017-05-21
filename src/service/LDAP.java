@@ -64,7 +64,6 @@ public class LDAP {
 	private Utils utils = new Utils();
 	private String ldapIp;
 	
-	// todo: GABO - mohlo by sa nejak optimalizovat aby necital vzdy zo suboru
 	private String readLdapIpFromConfigFile() {
 		try {
 			BufferedReader br = new BufferedReader(

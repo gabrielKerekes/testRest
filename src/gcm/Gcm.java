@@ -16,18 +16,17 @@ import gcm.messages.ConfirmIdentityGcmMessage;
 import gcm.messages.ConfirmTransactionGcmMessage;
 import gcm.messages.GcmMessage;
 import service.LDAP;
-// todo: GABO - GCM spravit statickym
+
 public class Gcm {
-	// todo: GABO - fakt ze refaktorovat .... message by mala osbahovat typ spravy, elbo uz ich bude viac
-    public Gcm(String username, GcmMessage gcmMessage) {
-        String apiKey = "AIzaSyA9Me7U6x9mhne7t7aUmmVLCzdcujmtx-M";//"AIzaSyAZBdN__jxzicFfzSmqtgL-fKVDoAqiaCg";//"AIzaSyAJG2hGrTAdAfguxDkDZbEKLbBATdQZRZg";
-        
+    public static String apiKey = "AIzaSyA9Me7U6x9mhne7t7aUmmVLCzdcujmtx-M";//"AIzaSyAZBdN__jxzicFfzSmqtgL-fKVDoAqiaCg";//"AIzaSyAJG2hGrTAdAfguxDkDZbEKLbBATdQZRZg";
+    
+    public static void post(String username, GcmMessage gcmMessage) {        
         String gcmRegistartionId = getUserGcmRegistrationId(username);
         gcmMessage.addGcmRegistrationId(gcmRegistartionId);
         
         gcmMessage.createData();
         
-        Gcm.post(apiKey, gcmMessage);
+        Gcm.post(gcmMessage);
     }
     
     private static String getUserGcmRegistrationId(String username) {
@@ -38,7 +37,7 @@ public class Gcm {
         return gcmRegistrationId;
     }
     
-    public static void post(String apiKey, GcmMessage message) {
+    private static void post(GcmMessage message) {
         try {
 	        URL url = new URL("https://android.googleapis.com/gcm/send");
 	        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -69,9 +68,10 @@ public class Gcm {
 	        in.close();
 	        
         } catch (MalformedURLException e) {
+        	System.out.println("GcmPost - Malformed URL exception");
             e.printStackTrace();
         } catch (IOException e) {
-        	//  todo: GABO - posli exception dalej
+        	System.out.println("GcmPost - IOException");
             e.printStackTrace();
         }
     }

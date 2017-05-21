@@ -18,13 +18,8 @@ public class BankClient {
 	private static final String AddressBase = "http://127.0.0.1:8080/BankServer2/bank/rest/";
 	
 	public static int executePost(String request, BankMessage message) {
-		if (!request.equals("getTest")) {
-			System.out.println("BANK POST - " + message.getAccountNumber() + " " + message.getTimestamp());
-		} else {
-			System.out.println("BANK TEST POST");
-		}
+		System.out.println("BANK POST - " + message.getAccountNumber() + " " + message.getTimestamp());
 		
-		// todo: GABO - uncomment when bank ready
 		try {
 	        URL url = new URL(AddressBase + request);
 	        HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();

@@ -14,9 +14,6 @@ import java.sql.Timestamp;
 
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
-// todo: GABO - rename
-// todo: GABO - refactor
-// todo: GABO - kazda tabulka nech ma svoju classu
 public class MysqlDb {
 	private MysqlDataSource mysqlDataSource;
 	
@@ -140,13 +137,13 @@ public class MysqlDb {
 		return executePreparedStatement(query);
 	}
 	
-	public boolean addPendingIdentityConfirmation(String key, String accountNumber) {
+	public boolean addPendingIdentityConfirmation(String key, String accountNumber, String username, String timestamp, String guid) {
 		System.out.println("DB: addPendingIdentityConfirmation - key: " + key + " accountNumber: " + accountNumber);
 		
 		String query = String.format(
-				"INSERT INTO PendingIdentityConfirmation (Token, AccountNumber) " + 
-				"VALUES('%s', '%s')",
-				key, accountNumber);
+				"INSERT INTO PendingIdentityConfirmation (Token, AccountNumber, Username, Timestamp, Guid) " + 
+				"VALUES('%s', '%s', '%s', '%s', '%s')",
+				key, accountNumber, username, timestamp, guid);
 				
 		return executePreparedStatement(query);
 	}
