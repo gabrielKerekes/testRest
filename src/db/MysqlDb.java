@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -137,25 +139,24 @@ public class MysqlDb {
 		return executePreparedStatement(query);
 	}
 	
-	public boolean addPendingIdentityConfirmation(String key, String accountNumber, String username, String timestamp, String guid) {
+	public boolean addPendingIdentityConfirmation(String key, String accountNumber, String username, String timestamp, String guid, String action) {
 		System.out.println("DB: addPendingIdentityConfirmation - key: " + key + " accountNumber: " + accountNumber);
 		
 		String query = String.format(
-				"INSERT INTO PendingIdentityConfirmation (Token, AccountNumber, Username, Timestamp, Guid) " + 
-				"VALUES('%s', '%s', '%s', '%s', '%s')",
-				key, accountNumber, username, timestamp, guid);
+				"INSERT INTO PendingIdentityConfirmation (Token, AccountNumber, Username, Timestamp, Guid, Action) " + 
+				"VALUES('%s', '%s', '%s', '%s', '%s', '%s')",
+				key, accountNumber, username, timestamp, guid, action);
 				
 		return executePreparedStatement(query);
 	}
 	
-	public String getPendingIdentityConfirmation(String key) {
-		System.out.println("DB: getPendingIdentityConfirmation - key: " + key);
+	public List<PendingIdentityConfirmationDbObject> getPendingIdentityConfirmations(String accountNumber) {
+		System.out.println("DB: getPendingIdentityConfirmation - accountNumber: " + accountNumber);
 		
-		// token used in db, because Key can't be used
 		String query = String.format(
 				"SELECT * FROM PendingIdentityConfirmation " + 
-				"WHERE Token='%s'",
-				key);
+				"WHERE AccountNumber='%s'",
+				accountNumber);
 
 		Connection connection = null;
 		Statement statement = null;
@@ -167,9 +168,17 @@ public class MysqlDb {
 
 			resultSet = statement.executeQuery(query);
 			if (resultSet != null) {
-				if (resultSet.next()) {
-					return resultSet.getString("AccountNumber");					
+				List<PendingIdentityConfirmationDbObject> pendingIdentityConfirmations = new ArrayList<>();
+				while (resultSet.next()) {
+					String token = resultSet.getString("Token");
+					//String accountNumber = resultSet.getString("AccountNumber");
+					Timestamp timestamp = resultSet.getTimestamp("Timestamp");
+					String guid = resultSet.getString("Guid");
+					String action = resultSet.getString("Action");	
+					
+					pendingIdentityConfirmations.add(new PendingIdentityConfirmationDbObject(token, accountNumber, timestamp, guid, action));
 				}
+				return pendingIdentityConfirmations;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -184,6 +193,18 @@ public class MysqlDb {
 		}
 		
 		return null;
+	}
+	
+	public boolean deletePendingIdentityConfirmation(String key) {
+		System.out.println("DB: deletePendingIdentityConfirmation - key: " + key);
+		
+		// token used in db, because Key can't be used
+		String query = String.format(
+				"DELETE FROM PendingIdentityConfirmation " + 
+				"WHERE Token='%s'",
+				key);
+		
+		return executePreparedStatement(query);
 	}
 	
 	public boolean addPendingTransaction(String key, String paymentId) {

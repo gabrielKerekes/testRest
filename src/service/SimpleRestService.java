@@ -3,6 +3,7 @@ package service;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -51,6 +52,7 @@ import bank.messages.ConfirmTransactionResponseBankMessage;
 import bank.messages.ConfirmTransactionResponseBankMessage.StatusString;
 import client.BankClient;
 import db.MysqlDb;
+import db.PendingIdentityConfirmationDbObject;
 import gcm.Gcm;
 import gcm.GcmContent;
 import gcm.GcmMessageType;
@@ -143,7 +145,7 @@ public class SimpleRestService {
 			String username = ldap.getAccountNumberUsername(message.getAccountNumber());
 			String key = username + message.getTimestamp() + message.getGuid();
 			
-			if (!database.addPendingIdentityConfirmation(key, message.getAccountNumber(), username, message.getTimestamp() + "", message.getGuid())) {
+			if (!database.addPendingIdentityConfirmation(key, message.getAccountNumber(), username, message.getTimestamp() + "", message.getGuid(), message.getAction())) {
 				System.out.println("DBERROR: addPendingIdentityConfirmation returned false");
 				return new MyResponse(false, MyResponse.ResponseString.ERROR);
 			}
@@ -170,16 +172,31 @@ public class SimpleRestService {
 			String messageId = message.getUsername() + message.getTimestamp() + message.getGuid();
 
 			MysqlDb database = new MysqlDb();
-			String accountNumber = database.getPendingIdentityConfirmation(messageId);
+			List<PendingIdentityConfirmationDbObject> pendingIdentityConfirmations = database.getPendingIdentityConfirmations(message.getAccountNumber());
 			
 			// if there was a pending identity confirmation and it isn't expired yet
-			if (accountNumber != null && (new Date().getTime() - message.getTimestamp().getTime()) < confirmIdentityExpirationPeriod) {			
+			if (pendingIdentityConfirmations != null && (new Date().getTime() - message.getTimestamp().getTime()) < confirmIdentityExpirationPeriod) {			
 				if (checkTransactionOcra(ldap, message)) {	
 					if (!database.setAccountNumberAuthenticated(message.getAccountNumber(), message.getTimestamp())) {
 						System.out.println("DBERROR: setAccountNumberAuthenticated");
 						return new MyResponse(false, MyResponse.ResponseString.ERROR);
+					}	
+					
+					for (PendingIdentityConfirmationDbObject pendingIdentityConfirmation : pendingIdentityConfirmations) {
+						if (new Date().getTime() - pendingIdentityConfirmation.getTimestamp().getTime() >= confirmIdentityExpirationPeriod) {
+							database.deletePendingIdentityConfirmation(pendingIdentityConfirmation.getToken());
+							continue;
+						}								
+						
+						String accountNumber = pendingIdentityConfirmation.getAccountNumber();
+						Timestamp timestamp = pendingIdentityConfirmation.getTimestamp();
+						String guid = pendingIdentityConfirmation.getGuid();
+						String action = pendingIdentityConfirmation.getAction();
+						
+						sendIdentityConfirmedMessageToBank(accountNumber, timestamp, message.getAnswer(), guid, action);
+						
+						database.deletePendingIdentityConfirmation(pendingIdentityConfirmation.getToken());
 					}
-					sendIdentityConfirmedMessageToBank(accountNumber, message.getTimestamp(), message.getAnswer(), message.getGuid(), message.getAction());
 				}
 				else {
 					response = new MyResponse(false, MyResponse.ResponseString.OCRA_ERROR);
@@ -189,13 +206,14 @@ public class SimpleRestService {
 				response = new MyResponse(false, MyResponse.ResponseString.EXPIRED);
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			response = new MyResponse(false, MyResponse.ResponseString.EXCEPTION, e.getMessage());
 		}
 		
 		return response;
 	}
 	
-	// todo: GABO - tu asi vobec netreba answer ....
+	// todo: tu asi vobec netreba answer ....
 	private void sendIdentityConfirmedMessageToBank(String accountNumber, Timestamp timestamp, String answer, String guid, String action) {
 		BankMessage bankMessage = new ConfirmIdentityResponseBankMessage(accountNumber, timestamp, answer, guid, action);
 		BankClient.executePost("identity", bankMessage);
