@@ -2,10 +2,6 @@ package ocrahotp;
 
 import java.math.BigInteger;
 
-/**
- * Created by GabrielK on 10-Feb-17.
- */
-
 public class Ocra extends OcraHotp {
     private static final int OCRA_LENGTH = 6;
 

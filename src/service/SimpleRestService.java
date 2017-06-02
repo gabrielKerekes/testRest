@@ -54,7 +54,6 @@ import client.BankClient;
 import db.MysqlDb;
 import db.PendingIdentityConfirmationDbObject;
 import gcm.Gcm;
-import gcm.GcmContent;
 import gcm.GcmMessageType;
 import gcm.messages.ConfirmIdentityGcmMessage;
 import gcm.messages.ConfirmTransactionGcmMessage;

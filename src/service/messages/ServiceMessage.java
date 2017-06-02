@@ -4,8 +4,6 @@ import java.sql.Timestamp;
 
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 
-// todo: GABO - mozno premenovat na PhoneMessage, alebo daco take, aby to davalo zmysel
-// 		s tym, ze banka ma svoju message a tak .. 
 public abstract class ServiceMessage {
 	private String username;
 	private String message;

@@ -368,18 +368,18 @@ public class LDAP {
        return grid;            	
 	}
 	
-	public String[] get_gridCard(String pwd){
-	   
-	   RegistrationUtils utils = new RegistrationUtils();
-	   utils.make_grid_card(pwd);
-	   String [] temp_grid_card = utils.getGrid_card();
-	   
-	   modify_array_attribute("mail", temp_grid_card);
-	   
-	   String grid[] = get_attribute("mail").getStringValueArray();	
-	            
-	   return grid;            	
-	}
+//	public String[] get_gridCard(String pwd){
+//	   
+//	   RegistrationUtils utils = new RegistrationUtils();
+//	   utils.make_grid_card(pwd);
+//	   String [] temp_grid_card = utils.getGrid_card();
+//	   
+//	   modify_array_attribute("mail", temp_grid_card);
+//	   
+//	   String grid[] = get_attribute("mail").getStringValueArray();	
+//	            
+//	   return grid;            	
+//	}
 	
 	public String[] get_trans(){
 		

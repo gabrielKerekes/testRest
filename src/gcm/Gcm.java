@@ -11,7 +11,6 @@ import java.sql.Timestamp;
 
 import com.google.gson.Gson;
 
-import gcm.GcmContent;
 import gcm.messages.ConfirmIdentityGcmMessage;
 import gcm.messages.ConfirmTransactionGcmMessage;
 import gcm.messages.GcmMessage;
